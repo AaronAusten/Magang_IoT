@@ -36,3 +36,55 @@ function register(event) {
         alert("Gagal terhubung ke database. Periksa koneksi atau konfigurasi Firebase.");
     });
 }
+
+async function registerFingerprint() {
+    const username = document.getElementById("username").value.trim();
+    if (!username) {
+        alert("Isi username terlebih dahulu!");
+        return;
+    }
+
+    try {
+        if (!window.PublicKeyCredential) {
+            alert("Browser Anda tidak mendukung autentikasi biometrik.");
+            return;
+        }
+
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+
+        const createCredentialOptions = {
+            publicKey: {
+                challenge: challenge,
+                rp: { name: "SAIL Website" 
+                    
+                },
+                user: {
+                    id: Uint8Array.from(username, c => c.charCodeAt(0)),
+                    name: username,
+                    displayName: username
+                },
+                pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+                authenticatorSelection: { authenticatorAttachment: "platform" },
+                timeout: 60000,
+                attestation: "direct"
+            }
+        };
+
+        const credential = await navigator.credentials.create(createCredentialOptions);
+        
+        const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+        
+        await database.ref('biometrics/' + username).set({
+            credentialId: credentialId,
+            registered: true
+        });
+
+        document.getElementById("fingerprint-status").innerText = "Fingerprint terdaftar!";
+        alert("Fingerprint berhasil didaftarkan!");
+
+    } catch (err) {
+        console.error(err);
+        alert("Gagal mendaftarkan fingerprint: " + err.message);
+    }
+}
