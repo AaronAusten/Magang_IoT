@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Website SAIL</title>
+  <link rel="stylesheet" href="Styles2.css">
+</head>
+
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCzts9Ts2ZzjSFt-_1L0NWXxGfEdPo9zkM",
+    authDomain: "sail-iot.firebaseapp.com",
+    databaseURL: "https://sail-iot-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "sail-iot",
+    storageBucket: "sail-iot.firebasestorage.app",
+    messagingSenderId: "1081787075174",
+    appId: "1:1081787075174:web:dbccdbb673079beb413ba7"
+  };
+  if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+  }
+  const database = firebase.database();
+</script>
+
+<script src="Dashboard.js"></script>
+
+<body>
+  <div class="dashboard">
+
+    <aside class="sidebar">
+      <div class="title">Dashboard</div>
+
+     <ul>
+       <li onclick="loadPage('produksi')">Data entry Produksi</li>
+       <li onclick="loadPage('utility')">Data entry Utility</li>
+       <li onclick="loadPage('lab')">Data entry Laboratorium</li>
+       <li onclick="loadPage('limbah')">Data entry Limbah</li>
+       <li onclick="loadPage('Service')">Service</li>
+	   <li onclick="loadPage('Reporting')">Reporting</li>
+	   <li onclick="loadPage('Help-&-Support')">Help & Support</li>
+	   <li onclick="loadPage('setting')">Setting</li>
+     </ul>
+
+      <div class="logout" onclick="confirmLogout()">Logout</div>
+    </aside>
+
+<main class="content" id="content">
+     <h1>Informasi Air</h1>
+     <p>Water Steam Generator information :</p>
+</main>
+</div>
+<script src ="Dashboard.js"></script>
+</body>
+</html>
