@@ -55,7 +55,6 @@ function loadPage(page) {
 }
 
 function changePassword() {
-  // Ambil username dari session lokal
   const username = localStorage.getItem("loggedInUser");
   
   if (!username) {
