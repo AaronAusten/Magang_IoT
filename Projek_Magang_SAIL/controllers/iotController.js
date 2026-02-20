@@ -1,4 +1,23 @@
-const db = require('../db');
+const { poolIoT } = require('../db'); // Ambil poolIoT saja
+
+exports.getAllLatestData = async (req, res) => {
+  try {
+    const patroli = await poolIoT.query('SELECT * FROM laporan_patroli ORDER BY waktu DESC LIMIT 5');
+    const waterLevel = await poolIoT.query('SELECT * FROM laporan_water_level ORDER BY waktu DESC LIMIT 5');
+    const waterFlow = await poolIoT.query('SELECT * FROM laporan_water_flow ORDER BY waktu DESC LIMIT 5');
+    const lingkungan = await poolIoT.query('SELECT * FROM laporan_lingkungan ORDER BY waktu DESC LIMIT 5');
+
+    res.json({
+      patroli: patroli.rows,
+      waterLevel: waterLevel.rows,
+      waterFlow: waterFlow.rows,
+      lingkungan: lingkungan.rows
+    });
+  } catch (err) {
+    console.error("Error IoT DB:", err);
+    res.status(500).send("Database IoT Error");
+  }
+};
 
 // ── Laporan Water Level ──────────────────────────────────────────────
 const getWaterLevel = async (req, res) => {
