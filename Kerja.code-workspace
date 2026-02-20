@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "Limbah"
+		},
+		{
+			"path": "RFID_Keamanan"
+		},
+		{
+			"path": "Water_Level"
+		},
+		{
+			"path": "Water_Flow"
+		},
+		{
+			"path": "Kirim_Data"
+		},
+		{
+			"path": "Coba"
+		}
+	],
+	"settings": {}
+}
