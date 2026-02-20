@@ -1,0 +1,35 @@
+{
+<<<<<<< HEAD
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "db.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@simplewebauthn/server": "^13.2.2",
+=======
+  "dependencies": {
+>>>>>>> 107d8cc9425247ab6ea474ac14a0a67b1d404373
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+<<<<<<< HEAD
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.18.0",
+    "uuid": "^13.0.0"
+=======
+    "pg": "^8.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+>>>>>>> 107d8cc9425247ab6ea474ac14a0a67b1d404373
+  }
+}

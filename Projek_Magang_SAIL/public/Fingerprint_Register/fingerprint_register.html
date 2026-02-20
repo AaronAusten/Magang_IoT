@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register Fingerprint</title>
+  <link rel="stylesheet" href="fingerprint_register.css" />
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="title">SAIL Operational Support System</div>
+    <div class="language">EN | ID</div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>Authentication Account</h2>
+
+      <p class="desc">
+        Secure your account using fingerprint / passkey
+      </p>
+
+      <button onclick="registerFingerprint()">Scan Fingerprint</button>
+
+
+      <p class="hint">
+        Make sure your device supports fingerprint authentication
+      </p>
+
+      <a href="../Homepage/Homepage.html" class="back-link">
+        Back to Login
+      </a>
+    </div>
+  </div>
+
+  <script src="fingerprint_register.js"></script>
+</body>
+</html>
