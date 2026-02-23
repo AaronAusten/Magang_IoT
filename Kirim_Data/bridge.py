@@ -24,7 +24,6 @@ DB_CONF = {
     "port":     5432,
 }
 
-# Connection pool — buka 1–5 koneksi, tidak buka-tutup tiap pesan
 _pool = psycopg2.pool.SimpleConnectionPool(1, 5, **DB_CONF)
 
 # ══════════════════════════════════════════════════════════════
@@ -68,7 +67,6 @@ def on_message(client, userdata, msg):
     #  1. PATROLI RFID
     #  Payload  : {"pos":int, "status":"Aman|Rusak|Aneh|Bahaya"}
     #  Tabel    : laporan_patroli(pos, status)
-    #  created_at diisi otomatis oleh DEFAULT NOW()
     # ──────────────────────────────────────────────────────────
     if topic == "patroli/laporan":
         pos    = int(data.get("pos", 0))
@@ -96,44 +94,39 @@ def on_message(client, userdata, msg):
     elif topic == "sensor/water_level":
         s1 = max(0, min(100, int(data.get("s1", 0))))
         s2 = max(0, min(100, int(data.get("s2", 0))))
-        p1 = int(data.get("p1", 1))  # default MATI jika tidak ada
+        p1 = int(data.get("p1", 1))
         p2 = int(data.get("p2", 1))
 
         ok = save(
             "INSERT INTO laporan_water_level (s1, s2, p1, p2) VALUES (%s, %s, %s, %s)",
             (s1, s2, p1, p2)
         )
-        status_p1 = "NYALA" if p1 == 0 else "MATI"
-        status_p2 = "NYALA" if p2 == 0 else "MATI"
         if ok:
-            print(f"🌊 [LEVEL] S1:{s1}%  S2:{s2}%  P1:{status_p1}  P2:{status_p2}")
+            print(f"🌊 [LEVEL] S1:{s1}%  S2:{s2}%  "
+                  f"P1:{'NYALA' if p1==0 else 'MATI'}  "
+                  f"P2:{'NYALA' if p2==0 else 'MATI'}")
 
     # ──────────────────────────────────────────────────────────
     #  3. WATER FLOW
-    #  Payload  : {"rate":float, "total":int}
-    #             rate  = L/menit
-    #             total = mL akumulasi sejak boot
-    #  Tabel    : laporan_water_flow(rate, total)
+    #  Payload  : {"flow":float, "total":float}
+    #             flow  = debit saat ini L/menit (2 desimal)
+    #             total = akumulasi total Liter sejak boot (2 desimal)
+    #  Tabel    : laporan_water_flow(flow, total)
     # ──────────────────────────────────────────────────────────
     elif topic == "sensor/water_flow":
-        rate  = round(float(data.get("rate",  0)), 2)
-        total = int(data.get("total", 0))
+        flow  = round(float(data.get("flow",  0)), 2)
+        total = round(float(data.get("total", 0)), 2)
 
         ok = save(
-            "INSERT INTO laporan_water_flow (rate, total) VALUES (%s, %s)",
-            (rate, total)
+            "INSERT INTO laporan_water_flow (flow, total) VALUES (%s, %s)",
+            (flow, total)
         )
         if ok:
-            print(f"💧 [FLOW] Rate:{rate} L/min  Total:{total} mL")
+            print(f"💧 [FLOW] Flow:{flow} L/min  Total:{total} L")
 
     # ──────────────────────────────────────────────────────────
     #  4. LINGKUNGAN (DHT22 + Gas MiCS)
     #  Payload  : {"t":float, "h":float, "raw":int, "stat":"string"}
-    #             t    = suhu °C
-    #             h    = kelembapan %RH
-    #             raw  = ADC gas 0–4095
-    #             stat = "SANGAT BERSIH"|"NORMAL / AMAN"|
-    #                    "TERDETEKSI GAS"|"BAHAYA"
     #  Tabel    : laporan_lingkungan(t, h, raw, stat)
     # ──────────────────────────────────────────────────────────
     elif topic == "sensor/lingkungan":
@@ -142,7 +135,6 @@ def on_message(client, userdata, msg):
         raw  = max(0, min(4095, int(data.get("raw", 0))))
         stat = str(data.get("stat", "NORMAL / AMAN"))
 
-        # Validasi dasar agar tidak simpan data rusak
         if not (-40 <= t <= 85):
             print(f"⚠️  [ENV] Suhu tidak wajar: {t}°C"); return
         if not (0 <= h <= 100):
@@ -163,7 +155,7 @@ def on_message(client, userdata, msg):
 # ══════════════════════════════════════════════════════════════
 def on_disconnect(client, userdata, flags, reason_code, properties):
     if reason_code != 0:
-        print(f"⚠️  MQTT terputus (reason={reason_code}), akan reconnect otomatis...")
+        print(f"⚠️  MQTT terputus (reason={reason_code}), reconnecting...")
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.on_connect    = on_connect
