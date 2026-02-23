@@ -1,79 +1,175 @@
 import paho.mqtt.client as mqtt
-import json
-import datetime
 import psycopg2
+import psycopg2.pool
+import json
 
+# ══════════════════════════════════════════════════════════════
+#  KONFIGURASI
+# ══════════════════════════════════════════════════════════════
 MQTT_BROKER = "192.168.0.211"
+MQTT_PORT   = 1883
+
 MQTT_TOPICS = [
-    ("patroli/laporan", 0), 
-    ("sensor/water_level", 0), 
-    ("sensor/water_flow", 0),
-    ("sensor/lingkungan", 0)
+    ("patroli/laporan",    0),
+    ("sensor/water_level", 0),
+    ("sensor/water_flow",  0),
+    ("sensor/lingkungan",  0),
 ]
 
 DB_CONF = {
-    "host": "localhost",
+    "host":     "localhost",
     "database": "SAIL_IoT",
-    "user": "postgres",
-    "password": "Anoraa"
+    "user":     "postgres",
+    "password": "Anoraa",
+    "port":     5432,
 }
 
-def save_to_db(query, params):
-    conn = None
+# Connection pool — buka 1–5 koneksi, tidak buka-tutup tiap pesan
+_pool = psycopg2.pool.SimpleConnectionPool(1, 5, **DB_CONF)
+
+# ══════════════════════════════════════════════════════════════
+#  HELPER DB
+# ══════════════════════════════════════════════════════════════
+def save(query: str, params: tuple) -> bool:
+    conn = _pool.getconn()
     try:
-        conn = psycopg2.connect(**DB_CONF)
         cur = conn.cursor()
         cur.execute(query, params)
         conn.commit()
         cur.close()
         return True
     except Exception as e:
+        conn.rollback()
         print(f"❌ DB Error: {e}")
         return False
     finally:
-        if conn: conn.close()
+        _pool.putconn(conn)
 
+# ══════════════════════════════════════════════════════════════
+#  MQTT CALLBACKS
+# ══════════════════════════════════════════════════════════════
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
-        print(f"🚀 Gateway SAIL Aktif! Mendengarkan {len(MQTT_TOPICS)} sistem...")
+        print(f"🚀 Gateway SAIL Aktif! Mendengarkan {len(MQTT_TOPICS)} topik...")
         client.subscribe(MQTT_TOPICS)
+    else:
+        print(f"❌ Gagal konek MQTT, reason_code={reason_code}")
 
 def on_message(client, userdata, msg):
     try:
         data = json.loads(msg.payload.decode())
-        waktu = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # 1. SISTEM PATROLI RFID
-        if msg.topic == "patroli/laporan":
-            print(f"👮 [PATROLI] Pos: {data['pos']} | Status: {data['status']}")
-            save_to_db("INSERT INTO laporan_patroli (pos, status, waktu) VALUES (%s, %s, %s)", 
-                       (data['pos'], data['status'], waktu))
+    except json.JSONDecodeError as e:
+        print(f"⚠️  Bukan JSON dari [{msg.topic}]: {e}")
+        return
 
-        # 2. SISTEM WATER LEVEL (Pompa)
-        elif msg.topic == "sensor/water_level":
-            p1 = "ON" if data['p1'] == 0 else "OFF"
-            p2 = "ON" if data['p2'] == 0 else "OFF"
-            print(f"🌊 [LEVEL] S1: {data['s1']}% | S2: {data['s2']}% | P1: {p1} | P2: {p2}")
-            save_to_db("INSERT INTO laporan_water_level (persen_s1, persen_s2, status_pompa1, status_pompa2, waktu) VALUES (%s, %s, %s, %s, %s)", 
-                       (data['s1'], data['s2'], p1, p2, waktu))
+    topic = msg.topic
 
-        # 3. SISTEM WATER FLOW
-        elif msg.topic == "sensor/water_flow":
-            print(f"💧 [FLOW] Rate: {data['rate']} L/min | Total: {data['total']} mL")
-            save_to_db("INSERT INTO laporan_water_flow (flow_rate, total_ml, waktu) VALUES (%s, %s, %s)", 
-                       (data['rate'], data['total'], waktu))
+    # ──────────────────────────────────────────────────────────
+    #  1. PATROLI RFID
+    #  Payload  : {"pos":int, "status":"Aman|Rusak|Aneh|Bahaya"}
+    #  Tabel    : laporan_patroli(pos, status)
+    #  created_at diisi otomatis oleh DEFAULT NOW()
+    # ──────────────────────────────────────────────────────────
+    if topic == "patroli/laporan":
+        pos    = int(data.get("pos", 0))
+        status = str(data.get("status", ""))
 
-        # 4. SISTEM LINGKUNGAN (DHT & Gas)
-        elif msg.topic == "sensor/lingkungan":
-            print(f"🌡️ [ENV] Suhu: {data['t']}C | Lembap: {data['h']}% | Gas: {data['stat']}")
-            save_to_db("INSERT INTO laporan_lingkungan (suhu, kelembapan, gas_raw, status_udara, waktu) VALUES (%s, %s, %s, %s, %s)", 
-                       (data['t'], data['h'], data['raw'], data['stat'], waktu))
+        if pos not in range(1, 5):
+            print(f"⚠️  [PATROLI] pos tidak valid: {pos}"); return
+        if status not in ("Aman", "Rusak", "Aneh", "Bahaya"):
+            print(f"⚠️  [PATROLI] status tidak valid: {status}"); return
 
-    except Exception as e:
-        print(f"⚠️ Gagal memproses data dari {msg.topic}: {e}")
+        ok = save(
+            "INSERT INTO laporan_patroli (pos, status) VALUES (%s, %s)",
+            (pos, status)
+        )
+        if ok:
+            print(f"👮 [PATROLI] Pos {pos} → {status}")
+
+    # ──────────────────────────────────────────────────────────
+    #  2. WATER LEVEL + POMPA
+    #  Payload  : {"s1":int, "s2":int, "p1":int, "p2":int}
+    #             s1,s2 = persen tangki (0–100)
+    #             p1,p2 = 0=NYALA (relay LOW), 1=MATI (relay HIGH)
+    #  Tabel    : laporan_water_level(s1, s2, p1, p2)
+    # ──────────────────────────────────────────────────────────
+    elif topic == "sensor/water_level":
+        s1 = max(0, min(100, int(data.get("s1", 0))))
+        s2 = max(0, min(100, int(data.get("s2", 0))))
+        p1 = int(data.get("p1", 1))  # default MATI jika tidak ada
+        p2 = int(data.get("p2", 1))
+
+        ok = save(
+            "INSERT INTO laporan_water_level (s1, s2, p1, p2) VALUES (%s, %s, %s, %s)",
+            (s1, s2, p1, p2)
+        )
+        status_p1 = "NYALA" if p1 == 0 else "MATI"
+        status_p2 = "NYALA" if p2 == 0 else "MATI"
+        if ok:
+            print(f"🌊 [LEVEL] S1:{s1}%  S2:{s2}%  P1:{status_p1}  P2:{status_p2}")
+
+    # ──────────────────────────────────────────────────────────
+    #  3. WATER FLOW
+    #  Payload  : {"rate":float, "total":int}
+    #             rate  = L/menit
+    #             total = mL akumulasi sejak boot
+    #  Tabel    : laporan_water_flow(rate, total)
+    # ──────────────────────────────────────────────────────────
+    elif topic == "sensor/water_flow":
+        rate  = round(float(data.get("rate",  0)), 2)
+        total = int(data.get("total", 0))
+
+        ok = save(
+            "INSERT INTO laporan_water_flow (rate, total) VALUES (%s, %s)",
+            (rate, total)
+        )
+        if ok:
+            print(f"💧 [FLOW] Rate:{rate} L/min  Total:{total} mL")
+
+    # ──────────────────────────────────────────────────────────
+    #  4. LINGKUNGAN (DHT22 + Gas MiCS)
+    #  Payload  : {"t":float, "h":float, "raw":int, "stat":"string"}
+    #             t    = suhu °C
+    #             h    = kelembapan %RH
+    #             raw  = ADC gas 0–4095
+    #             stat = "SANGAT BERSIH"|"NORMAL / AMAN"|
+    #                    "TERDETEKSI GAS"|"BAHAYA"
+    #  Tabel    : laporan_lingkungan(t, h, raw, stat)
+    # ──────────────────────────────────────────────────────────
+    elif topic == "sensor/lingkungan":
+        t    = round(float(data.get("t",   0)), 1)
+        h    = round(float(data.get("h",   0)), 1)
+        raw  = max(0, min(4095, int(data.get("raw", 0))))
+        stat = str(data.get("stat", "NORMAL / AMAN"))
+
+        # Validasi dasar agar tidak simpan data rusak
+        if not (-40 <= t <= 85):
+            print(f"⚠️  [ENV] Suhu tidak wajar: {t}°C"); return
+        if not (0 <= h <= 100):
+            print(f"⚠️  [ENV] Kelembapan tidak wajar: {h}%"); return
+
+        ok = save(
+            "INSERT INTO laporan_lingkungan (t, h, raw, stat) VALUES (%s, %s, %s, %s)",
+            (t, h, raw, stat)
+        )
+        if ok:
+            print(f"🌡️  [ENV] Suhu:{t}°C  Lembap:{h}%  Gas:{raw} ({stat})")
+
+    else:
+        print(f"ℹ️  Topic tidak dikenal: {topic}")
+
+# ══════════════════════════════════════════════════════════════
+#  MAIN
+# ══════════════════════════════════════════════════════════════
+def on_disconnect(client, userdata, flags, reason_code, properties):
+    if reason_code != 0:
+        print(f"⚠️  MQTT terputus (reason={reason_code}), akan reconnect otomatis...")
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-client.on_connect = on_connect
-client.on_message = on_message
-client.connect(MQTT_BROKER, 1883, 60)
+client.on_connect    = on_connect
+client.on_message    = on_message
+client.on_disconnect = on_disconnect
+
+print(f"🔌 Menghubungkan ke MQTT broker {MQTT_BROKER}:{MQTT_PORT}...")
+client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
 client.loop_forever()

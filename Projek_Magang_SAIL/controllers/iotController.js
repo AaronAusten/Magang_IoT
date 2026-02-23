@@ -1,144 +1,121 @@
-const { poolIoT } = require('../db'); // Ambil poolIoT saja
+// iotController.js
+// Handles semua endpoint /api/iot/*
+// Menyesuaikan field DB: s1,s2,p1,p2 | rate,total | t,h,raw,stat | pos,status
 
-exports.getAllLatestData = async (req, res) => {
+const { poolIoT } = require('../db');
+
+const LIMIT = 100; // baris maksimal per query list
+
+// ════════════════════════════════════════════════════
+//  GET /api/iot/dashboard/summary
+//  Mengembalikan snapshot terbaru semua sensor +
+//  daftar pos patroli hari ini
+// ════════════════════════════════════════════════════
+async function getSummary(req, res) {
   try {
-    const patroli = await poolIoT.query('SELECT * FROM laporan_patroli ORDER BY waktu DESC LIMIT 5');
-    const waterLevel = await poolIoT.query('SELECT * FROM laporan_water_level ORDER BY waktu DESC LIMIT 5');
-    const waterFlow = await poolIoT.query('SELECT * FROM laporan_water_flow ORDER BY waktu DESC LIMIT 5');
-    const lingkungan = await poolIoT.query('SELECT * FROM laporan_lingkungan ORDER BY waktu DESC LIMIT 5');
-
-    res.json({
-      patroli: patroli.rows,
-      waterLevel: waterLevel.rows,
-      waterFlow: waterFlow.rows,
-      lingkungan: lingkungan.rows
-    });
-  } catch (err) {
-    console.error("Error IoT DB:", err);
-    res.status(500).send("Database IoT Error");
-  }
-};
-
-// ── Laporan Water Level ──────────────────────────────────────────────
-const getWaterLevel = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM laporan_water_level ORDER BY created_at DESC LIMIT 50`
-    );
-    res.json({ success: true, data: result.rows });
-  } catch (err) {
-    console.error('getWaterLevel error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const getLatestWaterLevel = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM laporan_water_level ORDER BY created_at DESC LIMIT 1`
-    );
-    res.json({ success: true, data: result.rows[0] || null });
-  } catch (err) {
-    console.error('getLatestWaterLevel error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// ── Laporan Water Flow ───────────────────────────────────────────────
-const getWaterFlow = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM laporan_water_flow ORDER BY created_at DESC LIMIT 50`
-    );
-    res.json({ success: true, data: result.rows });
-  } catch (err) {
-    console.error('getWaterFlow error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const getLatestWaterFlow = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM laporan_water_flow ORDER BY created_at DESC LIMIT 1`
-    );
-    res.json({ success: true, data: result.rows[0] || null });
-  } catch (err) {
-    console.error('getLatestWaterFlow error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// ── Laporan Lingkungan (Suhu, Kelembapan, Gas) ───────────────────────
-const getLingkungan = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM laporan_lingkungan ORDER BY created_at DESC LIMIT 50`
-    );
-    res.json({ success: true, data: result.rows });
-  } catch (err) {
-    console.error('getLingkungan error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const getLatestLingkungan = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM laporan_lingkungan ORDER BY created_at DESC LIMIT 1`
-    );
-    res.json({ success: true, data: result.rows[0] || null });
-  } catch (err) {
-    console.error('getLatestLingkungan error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// ── Laporan Patroli ──────────────────────────────────────────────────
-const getPatroli = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM laporan_patroli ORDER BY created_at DESC LIMIT 50`
-    );
-    res.json({ success: true, data: result.rows });
-  } catch (err) {
-    console.error('getPatroli error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// ── Summary semua sensor (untuk card utama dashboard) ────────────────
-const getDashboardSummary = async (req, res) => {
-  try {
-    const [waterLevel, waterFlow, lingkungan, patroli] = await Promise.all([
-      db.query(`SELECT * FROM laporan_water_level ORDER BY created_at DESC LIMIT 1`),
-      db.query(`SELECT * FROM laporan_water_flow ORDER BY created_at DESC LIMIT 1`),
-      db.query(`SELECT * FROM laporan_lingkungan ORDER BY created_at DESC LIMIT 1`),
-      db.query(`SELECT COUNT(*) as total FROM laporan_patroli`),
+    // Ambil data terbaru setiap sensor secara paralel
+    const [wlRes, wfRes, envRes, patTotalRes, patListRes] = await Promise.all([
+      poolIoT.query(
+        'SELECT id, s1, s2, p1, p2, created_at FROM laporan_water_level ORDER BY created_at DESC LIMIT 1'
+      ),
+      poolIoT.query(
+        'SELECT id, rate, total, created_at FROM laporan_water_flow ORDER BY created_at DESC LIMIT 1'
+      ),
+      poolIoT.query(
+        'SELECT id, t, h, raw, stat, created_at FROM laporan_lingkungan ORDER BY created_at DESC LIMIT 1'
+      ),
+      poolIoT.query(
+        "SELECT COUNT(*) AS total FROM laporan_patroli WHERE created_at >= CURRENT_DATE"
+      ),
+      poolIoT.query(
+        // Laporan terbaru per pos untuk hari ini
+        `SELECT DISTINCT ON (pos) id, pos, status, created_at
+         FROM laporan_patroli
+         WHERE created_at >= CURRENT_DATE
+         ORDER BY pos, created_at DESC`
+      ),
     ]);
 
     res.json({
       success: true,
       data: {
-        water_level: waterLevel.rows[0] || null,
-        water_flow: waterFlow.rows[0] || null,
-        lingkungan: lingkungan.rows[0] || null,
-        total_patroli: patroli.rows[0]?.total || 0,
+        water_level: wlRes.rows[0]  || null,
+        water_flow:  wfRes.rows[0]  || null,
+        lingkungan:  envRes.rows[0] || null,
+        patroli: {
+          total_hari_ini: parseInt(patTotalRes.rows[0]?.total ?? 0),
+          pos_list: patListRes.rows,
+        },
       },
     });
   } catch (err) {
-    console.error('getDashboardSummary error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('getSummary error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-};
+}
 
-module.exports = {
-  getWaterLevel,
-  getLatestWaterLevel,
-  getWaterFlow,
-  getLatestWaterFlow,
-  getLingkungan,
-  getLatestLingkungan,
-  getPatroli,
-  getDashboardSummary,
-};
+// ════════════════════════════════════════════════════
+//  GET /api/iot/water-level
+// ════════════════════════════════════════════════════
+async function getWaterLevel(req, res) {
+  try {
+    const { rows } = await poolIoT.query(
+      'SELECT id, s1, s2, p1, p2, created_at FROM laporan_water_level ORDER BY created_at DESC LIMIT $1',
+      [LIMIT]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getWaterLevel error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  GET /api/iot/water-flow
+// ════════════════════════════════════════════════════
+async function getWaterFlow(req, res) {
+  try {
+    const { rows } = await poolIoT.query(
+      'SELECT id, rate, total, created_at FROM laporan_water_flow ORDER BY created_at DESC LIMIT $1',
+      [LIMIT]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getWaterFlow error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  GET /api/iot/lingkungan
+// ════════════════════════════════════════════════════
+async function getLingkungan(req, res) {
+  try {
+    const { rows } = await poolIoT.query(
+      'SELECT id, t, h, raw, stat, created_at FROM laporan_lingkungan ORDER BY created_at DESC LIMIT $1',
+      [LIMIT]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getLingkungan error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  GET /api/iot/patroli
+// ════════════════════════════════════════════════════
+async function getPatroli(req, res) {
+  try {
+    const { rows } = await poolIoT.query(
+      'SELECT id, pos, status, created_at FROM laporan_patroli ORDER BY created_at DESC LIMIT $1',
+      [LIMIT]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getPatroli error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+module.exports = { getSummary, getWaterLevel, getWaterFlow, getLingkungan, getPatroli };
