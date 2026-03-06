@@ -19,7 +19,7 @@ PubSubClient client(espClient);
 #define SCREEN_HEIGHT 64
 #define OLED_RESET    -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
+  
 #define SS_PIN     5
 #define RST_PIN    22 
 #define Buzzer     4   

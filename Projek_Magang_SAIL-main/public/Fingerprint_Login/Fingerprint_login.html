@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fingerprint Login – SAIL</title>
+  <link rel="stylesheet" href="../Homepage/sail-unified.css">
+  <style>.card-body { text-align: center; }</style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-name">SAIL</div>
+      <div class="brand-sub">Support Operational System</div>
+    </div>
+    <div class="nav-hint">Step 2 of 2</div>
+  </div>
+  <div class="page-center">
+    <div class="card">
+      <div class="card-accent"></div>
+      <div class="card-body">
+        <div class="fp-visual">
+          <div class="fp-circle">
+            <svg viewBox="0 0 48 48" fill="none" width="44" height="44">
+              <path d="M24 6C14.06 6 6 14.06 6 24" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M24 10C16.27 10 10 16.27 10 24" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+              <path d="M24 14C18.48 14 14 18.48 14 24" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+              <path d="M24 18C20.69 18 18 20.69 18 24" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+              <circle cx="24" cy="24" r="3" fill="#10b981"/>
+              <path d="M24 6C33.94 6 42 14.06 42 24" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M24 10C31.73 10 38 16.27 38 24" stroke="#0f172a" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+              <path d="M24 14C29.52 14 34 18.48 34 24" stroke="#0f172a" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+              <path d="M24 18C27.31 18 30 20.69 30 24" stroke="#0f172a" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+            </svg>
+          </div>
+          <div class="fp-scan-line"></div>
+        </div>
+        <div class="step-row">
+          <div class="step done">
+            <div class="step-dot">✓</div>
+            <div class="step-label">Email &amp; Password</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step active">
+            <div class="step-dot">2</div>
+            <div class="step-label">Fingerprint</div>
+          </div>
+        </div>
+        <div class="card-title">Verifikasi Identitas</div>
+        <div class="card-desc">Scan fingerprint untuk menyelesaikan proses login. Langkah ini <strong>wajib</strong> dilakukan sebelum masuk ke dashboard.</div>
+        <button id="loginBtn" class="btn-fp">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+            <path d="M12 2C8.69 2 6 4.69 6 8" stroke-linecap="round"/>
+            <path d="M12 2c3.31 0 6 2.69 6 6" stroke-linecap="round"/>
+            <circle cx="12" cy="8" r="1.5" fill="currentColor"/>
+            <rect x="3" y="11" width="18" height="11" rx="3" fill="none" stroke-width="2"/>
+            <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
+          </svg>
+          Scan Fingerprint
+        </button>
+        <div class="mandatory-note">🔒 Verifikasi fingerprint wajib untuk keamanan akun Anda</div>
+      </div>
+      <div class="card-footer">
+        <a href="../Homepage/Homepage.html" class="card-link">← Kembali &amp; Login Ulang</a>
+        <div class="card-note">Gunakan fingerprint yang sudah terdaftar di perangkat ini</div>
+      </div>
+    </div>
+  </div>
+  <script src="Fingerprint_login.js"></script>
+</body>
+</html>

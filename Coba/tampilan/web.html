@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitor Suhu ESP32</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh; color: #fff; padding: 30px 20px;
+    }
+    h1 { text-align: center; font-size: 1.8rem; margin-bottom: 6px; }
+    .sub { text-align: center; color: #aaa; font-size: 0.9rem; margin-bottom: 28px; }
+
+    .status-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #555; transition: background 0.3s; }
+    .dot.ok  { background: #00e676; box-shadow: 0 0 8px #00e676; }
+    .dot.err { background: #ff1744; }
+
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 20px; max-width: 900px; margin: 0 auto 28px;
+    }
+    .card {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 28px 20px; text-align: center;
+      backdrop-filter: blur(10px); transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); }
+    .icon  { font-size: 2.2rem; margin-bottom: 10px; }
+    .lbl   { font-size: 0.78rem; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .val   { font-size: 2.6rem; font-weight: 700; }
+    .unit  { font-size: 1rem; color: #ccc; }
+    .t-hot { color: #ff6b35; }
+    .t-hum { color: #4fc3f7; }
+
+    .badge { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin-top: 8px; text-transform: uppercase; }
+    .b-panas  { background: rgba(255,107,53,0.2); color: #ff6b35; border: 1px solid #ff6b35; }
+    .b-dingin { background: rgba(79,195,247,0.2); color: #4fc3f7; border: 1px solid #4fc3f7; }
+    .b-normal { background: rgba(0,230,118,0.15); color: #00e676; border: 1px solid #00e676; }
+
+    .panel {
+      max-width: 900px; margin: 0 auto 28px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 28px; backdrop-filter: blur(10px);
+    }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 20px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media(max-width:500px){ .grid2 { grid-template-columns: 1fr; } }
+    label { display: block; font-size: 0.78rem; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .iw { position: relative; }
+    .iw input {
+      width: 100%; padding: 12px 42px 12px 16px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px; color: #fff; font-size: 1.1rem; outline: none; transition: border 0.2s;
+    }
+    .iw input:focus { border-color: #7c4dff; }
+    .iw span { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #aaa; }
+    .btn {
+      margin-top: 22px; width: 100%; padding: 14px;
+      background: linear-gradient(90deg, #7c4dff, #448aff);
+      border: none; border-radius: 10px; color: #fff; font-size: 1rem;
+      font-weight: 600; cursor: pointer; letter-spacing: 1px; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .log-box { max-width: 900px; margin: 0 auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 20px; }
+    .log-box h3 { font-size: 0.85rem; color: #555; margin-bottom: 10px; }
+    #logList { list-style: none; max-height: 130px; overflow-y: auto; }
+    #logList li { font-size: 0.73rem; color: #8bc34a; padding: 3px 0; font-family: monospace; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .upd { text-align: center; font-size: 0.72rem; color: #444; margin-top: 16px; }
+
+    #notif {
+      position: fixed; bottom: 24px; right: 24px; padding: 12px 22px;
+      border-radius: 10px; font-size: 0.9rem; font-weight: 600;
+      opacity: 0; transform: translateY(20px); transition: all 0.3s; pointer-events: none;
+    }
+    #notif.show { opacity: 1; transform: translateY(0); }
+    #notif.ok  { background: #00e676; color: #000; }
+    #notif.err { background: #ff1744; color: #fff; }
+  </style>
+</head>
+<body>
+
+<h1>🌡️ Monitor Suhu ESP32</h1>
+<p class="sub">DHT22 · Python Bridge · MQTT</p>
+
+<div class="status-bar">
+  <div class="dot" id="dot"></div>
+  <span id="statusTxt">Menghubungkan ke server...</span>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="icon">🌡️</div>
+    <div class="lbl">Suhu</div>
+    <div class="val t-hot"><span id="suhu">--</span><span class="unit"> °C</span></div>
+    <div id="badge"><span class="badge b-normal">Normal</span></div>
+  </div>
+  <div class="card">
+    <div class="icon">💧</div>
+    <div class="lbl">Kelembaban</div>
+    <div class="val t-hum"><span id="hum">--</span><span class="unit"> %</span></div>
+  </div>
+  <div class="card">
+    <div class="icon">🔥</div>
+    <div class="lbl">Threshold Panas</div>
+    <div class="val"><span id="tPanas">35</span><span class="unit"> °C</span></div>
+  </div>
+  <div class="card">
+    <div class="icon">❄️</div>
+    <div class="lbl">Threshold Dingin</div>
+    <div class="val"><span id="tDingin">20</span><span class="unit"> °C</span></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>⚙️ Atur Parameter Suhu</h2>
+  <div class="grid2">
+    <div>
+      <label>🔥 Batas Suhu Panas</label>
+      <div class="iw">
+        <input type="number" id="inPanas" value="35" step="0.5" />
+        <span>°C</span>
+      </div>
+    </div>
+    <div>
+      <label>❄️ Batas Suhu Dingin</label>
+      <div class="iw">
+        <input type="number" id="inDingin" value="20" step="0.5" />
+        <span>°C</span>
+      </div>
+    </div>
+  </div>
+  <button class="btn" id="btnKirim" onclick="kirimParams()">
+    📡 Kirim Parameter ke ESP32
+  </button>
+</div>
+
+<div class="log-box">
+  <h3>📋 Log</h3>
+  <ul id="logList"></ul>
+</div>
+<div class="upd">Auto-refresh tiap 3 detik · Terakhir: <span id="upd">-</span></div>
+<div id="notif"></div>
+
+<script>
+  const API = (window.location.port == '8080') ? '' : 'http://localhost:8080';
+
+  // ===== FETCH DATA SENSOR =====
+  async function fetchData() {
+    try {
+      const res = await fetch(API + '/api/data');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const d = await res.json();
+
+      document.getElementById('suhu').textContent   = typeof d.suhu === 'number' ? d.suhu.toFixed(1) : d.suhu;
+      document.getElementById('hum').textContent    = typeof d.kelembaban === 'number' ? d.kelembaban.toFixed(1) : d.kelembaban;
+      document.getElementById('tPanas').textContent  = d.threshold_panas;
+      document.getElementById('tDingin').textContent = d.threshold_dingin;
+      document.getElementById('inPanas').value  = d.threshold_panas;
+      document.getElementById('inDingin').value = d.threshold_dingin;
+      document.getElementById('upd').textContent = d.last_update;
+
+      // Badge status
+      const map = {
+        panas:  ['b-panas',  '🔥 Panas'],
+        dingin: ['b-dingin', '❄️ Dingin'],
+        normal: ['b-normal', '✅ Normal']
+      };
+      const [cls, lbl] = map[d.status] || map.normal;
+      document.getElementById('badge').innerHTML = `<span class="badge ${cls}">${lbl}</span>`;
+
+      setStatus('✅ Terhubung ke Python Bridge', 'ok');
+      addLog(`📩 Suhu: ${d.suhu}°C | Kelembaban: ${d.kelembaban}% | Status: ${d.status}`);
+
+    } catch(e) {
+      setStatus('❌ Tidak dapat terhubung ke server Python', 'err');
+      addLog('⚠️ Fetch error: ' + e.message);
+    }
+  }
+
+  // ===== KIRIM PARAMETER =====
+  async function kirimParams() {
+    const panas  = parseFloat(document.getElementById('inPanas').value);
+    const dingin = parseFloat(document.getElementById('inDingin').value);
+
+    if (isNaN(panas) || isNaN(dingin)) return showNotif('⚠️ Input tidak valid!', 'err');
+    if (dingin >= panas) return showNotif('❌ Suhu dingin harus < suhu panas!', 'err');
+
+    document.getElementById('btnKirim').disabled = true;
+
+    try {
+      const res = await fetch(API + '/api/params', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suhu_panas: panas, suhu_dingin: dingin })
+      });
+      const result = await res.json();
+
+      if (res.ok) {
+        showNotif('✅ Parameter berhasil dikirim!', 'ok');
+        addLog(`📤 Kirim params → Panas: ${panas}°C | Dingin: ${dingin}°C`);
+        document.getElementById('tPanas').textContent  = panas;
+        document.getElementById('tDingin').textContent = dingin;
+      } else {
+        showNotif('❌ ' + (result.error || 'Gagal!'), 'err');
+      }
+    } catch(e) {
+      showNotif('❌ Server tidak bisa dijangkau!', 'err');
+    } finally {
+      document.getElementById('btnKirim').disabled = false;
+    }
+  }
+
+  // ===== HELPER =====
+  function setStatus(msg, state) {
+    document.getElementById('statusTxt').textContent = msg;
+    document.getElementById('dot').className = 'dot ' + state;
+  }
+
+  function addLog(msg) {
+    const li = document.createElement('li');
+    li.textContent = `[${new Date().toLocaleTimeString('id-ID')}] ${msg}`;
+    const list = document.getElementById('logList');
+    list.insertBefore(li, list.firstChild);
+    if (list.children.length > 60) list.removeChild(list.lastChild);
+  }
+
+  function showNotif(msg, type) {
+    const n = document.getElementById('notif');
+    n.textContent = msg; n.className = 'show ' + type;
+    setTimeout(() => n.className = '', 3000);
+  }
+
+  // Auto-refresh tiap 3 detik
+  fetchData();
+  setInterval(fetchData, 3000);
+</script>
+</body>
+</html>

@@ -1,39 +1,318 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Website SAIL</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SAIL — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --blue:   #2b7de9;
+      --blue2:  #1d6bd4;
+      --txt:    #1a202c;
+      --txt2:   #4a5568;
+      --txt3:   #a0aec0;
+      --border: #e4e8ed;
+      --bg:     #f4f6f8;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Card ─────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 44px 40px 36px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 32px rgba(0,0,0,.06);
+      animation: fadeUp .4s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Brand ────────────────────────────────────────── */
+    .brand {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .brand-logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 20px; font-weight: 500;
+      color: var(--blue); letter-spacing: 4px;
+      display: inline-block;
+      background: #ebf2fd;
+      border: 1px solid rgba(43,125,233,.2);
+      padding: 6px 18px; border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .brand-title {
+      font-size: 20px; font-weight: 600;
+      color: var(--txt); margin-bottom: 4px;
+    }
+    .brand-sub {
+      font-size: 12px; color: var(--txt3);
+    }
+
+    /* ── Divider ──────────────────────────────────────── */
+    .divider {
+      height: 1px; background: var(--border);
+      margin: 0 0 28px;
+    }
+
+    /* ── Alert ────────────────────────────────────────── */
+    .alert {
+      display: none; padding: 10px 13px;
+      border-radius: 8px; font-size: 12px;
+      font-weight: 500; margin-bottom: 18px;
+      border: 1px solid; align-items: center; gap: 7px;
+    }
+    .alert.show { display: flex; }
+    .alert.err  { background: #fef2f2; color: #b91c1c; border-color: #f0a0a0; }
+    .alert.ok   { background: #edfaf4; color: #0e7a4a; border-color: #8edcba; }
+
+    /* ── Fields ───────────────────────────────────────── */
+    .field { margin-bottom: 16px; }
+    .field-label {
+      display: block; font-size: 10px; font-weight: 600;
+      letter-spacing: 1.2px; color: var(--txt2);
+      text-transform: uppercase; margin-bottom: 6px;
+    }
+    .field-wrap { position: relative; }
+    .field-input {
+      width: 100%; padding: 10px 14px 10px 40px;
+      border: 1px solid var(--border); border-radius: 9px;
+      background: var(--bg); font-family: 'DM Sans', sans-serif;
+      font-size: 13px; color: var(--txt); outline: none;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .field-input:focus {
+      border-color: var(--blue); background: #fff;
+      box-shadow: 0 0 0 3px rgba(43,125,233,.1);
+    }
+    .field-input::placeholder { color: var(--txt3); }
+    .field-ico {
+      position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%); font-size: 13px;
+      opacity: .45; pointer-events: none;
+    }
+    .field-eye {
+      position: absolute; right: 13px; top: 50%;
+      transform: translateY(-50%); font-size: 13px;
+      opacity: .35; cursor: pointer; user-select: none;
+      transition: opacity .15s;
+    }
+    .field-eye:hover { opacity: .75; }
+
+    /* ── Submit ───────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 11px;
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 9px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .18s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 6px; letter-spacing: .2px;
+    }
+    .btn:hover {
+      background: var(--blue2);
+      box-shadow: 0 4px 14px rgba(43,125,233,.3);
+      transform: translateY(-1px);
+    }
+    .btn:active { transform: none; box-shadow: none; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+    /* Spinner */
+    .spin {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .6s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Links ────────────────────────────────────────── */
+    .links {
+      text-align: center; margin-top: 20px;
+    }
+    .links p { font-size: 12px; color: var(--txt3); margin-top: 6px; }
+    .links a  { color: var(--blue); text-decoration: none; font-weight: 500; }
+    .links a:hover { text-decoration: underline; }
+
+    /* ── Lang toggle ──────────────────────────────────── */
+    .lang {
+      display: flex; justify-content: flex-end;
+      gap: 6px; margin-bottom: 24px;
+    }
+    .lang-btn {
+      font-size: 10px; font-weight: 600;
+      padding: 3px 9px; border-radius: 5px;
+      border: 1px solid var(--border); background: none;
+      color: var(--txt3); cursor: pointer; transition: all .15s;
+      font-family: 'DM Mono', monospace; letter-spacing: .5px;
+    }
+    .lang-btn.active, .lang-btn:hover {
+      border-color: var(--blue); color: var(--blue); background: #ebf2fd;
+    }
+  </style>
 </head>
 <body>
- <div class="top-bar">
-  <div class="title">SAIL Operational Support System</div>
 
-   <div class="language-switch">
-   <a href = "#">EN</a> |
-   <a href = "#">ID</a>
-   </div>
+<div class="card">
+
+  <!-- Language -->
+  <div class="lang">
+    <button class="lang-btn active" onclick="setLang('id')">ID</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
   </div>
-  
-  <div class="middle-section-login-form">
-  <form onsubmit="login(event)">
-    <label for="email">Email:</label>
-    <input type="email" id="email" required>
-    
-    <label for="password">Password:</label>
-    <input type="password" id="password" required>
-   
-	<button type="submit"> Submit </button>
-	<p>Only registered user can login and sign up!</p>
-  </form>
-   <p>Register?
-     <a href = "../Register/Register_page.html" style="text-decoration:none;">Click here!</a>
-	 </p>
-	 <p>Forgot password?
-	 <a href="#" style="text-decoration:none;">Click here!</a>
-	 </p>
-   </p>
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-logo">SAIL</div>
+    <div class="brand-title" id="txt-title">Masuk ke Dashboard</div>
+    <div class="brand-sub" id="txt-sub">Support Operational System</div>
   </div>
-  <script src="Login_Script.js"></script>
+
+  <div class="divider"></div>
+
+  <!-- Alert -->
+  <div class="alert" id="alert"></div>
+
+  <!-- Email -->
+  <div class="field">
+    <label class="field-label" id="lbl-email">Email</label>
+    <div class="field-wrap">
+      <span class="field-ico">✉️</span>
+      <input class="field-input" id="inp-email" type="email"
+        placeholder="email@sail.com" autocomplete="email"/>
+    </div>
+  </div>
+
+  <!-- Password -->
+  <div class="field">
+    <label class="field-label" id="lbl-pass">Password</label>
+    <div class="field-wrap">
+      <span class="field-ico">🔑</span>
+      <input class="field-input" id="inp-pass" type="password"
+        placeholder="••••••••" autocomplete="current-password"
+        style="padding-right:40px"/>
+      <span class="field-eye" onclick="toggleEye()">👁️</span>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <button class="btn" id="btn" onclick="doLogin()">
+    <div class="spin" id="spin"></div>
+    <span id="btn-txt">Masuk</span>
+  </button>
+
+  <!-- Links -->
+  <div class="links">
+    <p id="txt-register">Belum punya akun? <a href="#">Daftar di sini</a></p>
+    <p id="txt-forgot">Lupa password? <a href="#">Reset di sini</a></p>
+  </div>
+
+</div>
+
+<script>
+const LANG = {
+  id: {
+    title: 'Masuk ke Dashboard', sub: 'Support Operational System',
+    email: 'Email', pass: 'Password', btn: 'Masuk',
+    register: 'Belum punya akun? <a href="#">Daftar di sini</a>',
+    forgot:   'Lupa password? <a href="#">Reset di sini</a>',
+    errEmpty: 'Email dan password harus diisi.',
+    errFail:  'Email atau password salah.',
+    errNet:   'Tidak dapat terhubung ke server.',
+  },
+  en: {
+    title: 'Sign in to Dashboard', sub: 'Support Operational System',
+    email: 'Email', pass: 'Password', btn: 'Sign In',
+    register: "Don't have an account? <a href='#'>Register here</a>",
+    forgot:   "Forgot password? <a href='#'>Reset here</a>",
+    errEmpty: 'Please enter email and password.',
+    errFail:  'Invalid email or password.',
+    errNet:   'Cannot reach the server.',
+  }
+};
+
+let curLang = 'id';
+
+function setLang(lang) {
+  curLang = lang;
+  const L = LANG[lang];
+  document.getElementById('txt-title').textContent   = L.title;
+  document.getElementById('txt-sub').textContent     = L.sub;
+  document.getElementById('lbl-email').textContent   = L.email;
+  document.getElementById('lbl-pass').textContent    = L.pass;
+  document.getElementById('btn-txt').textContent     = L.btn;
+  document.getElementById('txt-register').innerHTML  = L.register;
+  document.getElementById('txt-forgot').innerHTML    = L.forgot;
+  document.querySelectorAll('.lang-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent === lang.toUpperCase())
+  );
+}
+
+function toggleEye() {
+  const i = document.getElementById('inp-pass');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+function showAlert(msg, type) {
+  const el = document.getElementById('alert');
+  el.textContent = msg; el.className = 'alert show ' + type;
+}
+function clearAlert() { document.getElementById('alert').className = 'alert'; }
+
+async function doLogin() {
+  clearAlert();
+  const email = document.getElementById('inp-email').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  const L     = LANG[curLang];
+  if (!email || !pass) { showAlert(L.errEmpty, 'err'); return; }
+
+  const btn = document.getElementById('btn');
+  const sp  = document.getElementById('spin');
+  const bt  = document.getElementById('btn-txt');
+  btn.disabled = true; sp.style.display = 'block'; bt.textContent = '...';
+
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showAlert(data.message || L.errFail, 'err');
+    } else {
+      showAlert('✅ Login berhasil, mengalihkan…', 'ok');
+      localStorage.setItem('isLoggedin', 'true');
+      localStorage.setItem('user_email', data.email || email);
+      setTimeout(() => { window.location.href = '../Dashboard/Dashboard.html'; }, 900);
+    }
+  } catch {
+    showAlert(L.errNet, 'err');
+  } finally {
+    btn.disabled = false; sp.style.display = 'none'; bt.textContent = LANG[curLang].btn;
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
 </body>
 </html>

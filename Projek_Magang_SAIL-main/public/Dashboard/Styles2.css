@@ -1,0 +1,126 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  background: #6b7280;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: white;
+}
+
+.menu-item {
+  margin-bottom: 15px;
+}
+
+.menu-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.menu-title:hover {
+  background: rgba(255, 165, 0, 0.15);
+  color: orange;
+  transform: translateX(5px);
+}
+
+.arrow {
+  font-size: 13px;
+  transition: transform 0.3s ease;
+}
+
+.arrow.rotate {
+  transform: rotate(180deg);
+}
+
+.submenu {
+  display: none;
+  list-style: none;
+  padding-left: 18px;
+  margin-top: 5px;
+}
+
+.submenu.show {
+  display: block;
+}
+
+.submenu li {
+  font-size: 15px;
+  color: #f3f4f6;
+  padding: 6px 8px;
+  margin: 4px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submenu li:hover {
+  background: rgba(255, 165, 0, 0.2);
+  color: orange;
+  transform: translateX(5px);
+}
+
+.menu-item[onclick] {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu-item[onclick]:hover {
+  background: rgba(255, 165, 0, 0.15);
+  color: orange;
+  transform: translateX(5px);
+}
+
+.content {
+  flex: 1;
+  padding: 30px;
+  background: #f9fafb;
+}
+
+.content h1 {
+  margin-bottom: 10px;
+}
+
+.logout {
+	font-size: 19px;
+	font-weight: 600;
+	color: white;
+	cursor: pointer;
+	margin-top: auto;
+}
+
+.logout:hover{
+	color:orange;
+	transform:translateX(5px);
+	transition:0.2s;
+}

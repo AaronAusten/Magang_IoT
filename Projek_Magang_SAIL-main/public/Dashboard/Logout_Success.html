@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logout – SAIL</title>
+  <link rel="stylesheet" href="../Homepage/sail-unified.css">
+  <style>
+    .card-body { text-align: center; }
+    .detail-block { text-align: left; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-name">SAIL</div>
+      <div class="brand-sub">Support Operational System</div>
+    </div>
+  </div>
+  <div class="page-center">
+    <div class="card">
+      <div class="card-accent" style="background: linear-gradient(90deg,#10b981,#38bdf8);"></div>
+      <div class="card-body">
+        <div class="check-circle">✓</div>
+        <div class="card-title">Logged Out Successfully</div>
+        <div class="card-desc">Thank you for using SAIL System. Your session has been securely ended.</div>
+        <div class="detail-block">
+          <div class="detail-row">
+            <span class="detail-key">Status</span>
+            <span class="badge-status"><span class="badge-dot"></span>Session Closed</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Last Logout</span>
+            <span class="detail-val" id="logout-time">—</span>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="window.location.href='../Homepage/Homepage.html'">← Back to Login</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('logout-time').textContent = new Date().toLocaleString('id-ID');
+  </script>
+</body>
+</html>

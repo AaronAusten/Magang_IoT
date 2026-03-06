@@ -1,0 +1,2207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SAIL – Operational Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:       #f4f6f8;
+      --surface:  #ffffff;
+      --border:   #e4e8ed;
+      --border2:  #cfd6de;
+      --txt:      #1a202c;
+      --txt2:     #4a5568;
+      --txt3:     #a0aec0;
+      --blue:     #2b7de9;
+      --green:    #18a96a;
+      --orange:   #e07b2a;
+      --yellow:   #c99a0a;
+      --purple:   #6f52d9;
+      --red:      #dc3545;
+      --sidebar:  230px;
+      --radius:   12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Sidebar ───────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .logo-wrap {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--blue);
+      letter-spacing: 3px;
+    }
+    .logo-sub {
+      font-size: 10px;
+      color: var(--txt3);
+      letter-spacing: 1px;
+      margin-top: 3px;
+    }
+
+    .nav { flex: 1; padding: 12px 10px; }
+    .nav-section-label {
+      font-size: 9px; letter-spacing: 1.5px; color: var(--txt3);
+      text-transform: uppercase; padding: 12px 8px 5px; font-weight: 600;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      color: var(--txt2); font-size: 13px; font-weight: 500;
+      transition: all .15s; position: relative;
+    }
+    .nav-item:hover { background: var(--bg); color: var(--txt); }
+    .nav-item.active { background: #ebf2fd; color: var(--blue); }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+      width: 3px; background: var(--blue); border-radius: 2px;
+    }
+    .nav-item .ico { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
+
+    .nav-group { margin-bottom: 2px; }
+    .nav-group-head {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      color: var(--txt2); font-size: 13px; font-weight: 500; transition: all .15s;
+    }
+    .nav-group-head:hover { background: var(--bg); color: var(--txt); }
+    .nav-group-head .ico { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
+    .nav-group-head .arr { font-size: 9px; margin-left: auto; transition: transform .22s; color: var(--txt3); }
+    .nav-group-head.open .arr { transform: rotate(180deg); }
+    .nav-sub { display: none; padding-left: 26px; padding-bottom: 3px; }
+    .nav-sub.show { display: block; }
+    .nav-sub-item {
+      padding: 6px 10px; font-size: 12px; color: var(--txt3);
+      cursor: pointer; border-radius: 6px; transition: all .15s;
+    }
+    .nav-sub-item:hover { color: var(--blue); background: #ebf2fd; }
+
+    .sidebar-footer {
+      padding: 12px 10px; border-top: 1px solid var(--border);
+    }
+    .logout-btn {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      color: var(--txt3); font-size: 13px; font-weight: 500; transition: all .15s;
+    }
+    .logout-btn:hover { background: #fdf2f2; color: var(--red); }
+
+    /* ─── Main ──────────────────────────────────────── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 26px; border-bottom: 1px solid var(--border);
+      background: var(--surface); flex-shrink: 0;
+    }
+    .topbar-left { display: flex; flex-direction: column; gap: 2px; }
+    .topbar-page { font-size: 16px; font-weight: 600; color: var(--txt); }
+    .topbar-crumb { font-size: 11px; color: var(--txt3); }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+    /* ESP Status badge */
+    .esp-badge {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 13px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; letter-spacing: .4px;
+      border: 1px solid; transition: all .4s;
+    }
+    .esp-badge.waiting  { background: #fef9ec; border-color: #f0d078; color: #9a7200; }
+    .esp-badge.connected{ background: #edfaf4; border-color: #8edcba; color: #0e7a4a; }
+    .esp-badge.error    { background: #fef2f2; border-color: #f0a0a0; color: #b91c1c; }
+    .esp-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .esp-badge.waiting   .esp-dot { background: #d4a017; animation: espPulse 1.8s infinite; }
+    .esp-badge.connected .esp-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
+    .esp-badge.error     .esp-dot { background: var(--red); }
+    @keyframes espPulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    .clock-txt {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px; color: var(--txt3);
+    }
+
+    .content {
+      flex: 1; overflow-y: auto;
+      padding: 22px 26px;
+      background: var(--bg);
+    }
+
+    /* ─── Sensor Grid ───────────────────────────────── */
+    .sensor-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    /* ─── Card ──────────────────────────────────────── */
+    .s-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px 14px;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow .2s, border-color .2s;
+    }
+    .s-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); border-color: var(--border2); }
+    .s-bar {
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--acc, var(--blue));
+      border-radius: var(--radius) var(--radius) 0 0; opacity: .7;
+    }
+
+    /* waiting overlay per card */
+    .esp-waiting-overlay {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(244,246,248,.88);
+      border-radius: var(--radius);
+      flex-direction: column;
+      align-items: center; justify-content: center; gap: 7px;
+      z-index: 5; backdrop-filter: blur(1px);
+    }
+    .esp-waiting-overlay.show { display: flex; }
+    .esp-wait-icon { font-size: 20px; opacity: .45; }
+    .esp-wait-txt  { font-size: 11px; font-weight: 600; color: var(--txt3); letter-spacing: .3px; }
+    .esp-wait-sub  { font-size: 10px; color: var(--txt3); opacity: .65; }
+    .dots::after   { content: ''; animation: dots 1.8s steps(4,end) infinite; }
+    @keyframes dots { 0%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} 100%{content:''} }
+
+    .s-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.8px;
+      color: var(--txt3); text-transform: uppercase; margin-bottom: 8px;
+    }
+    .s-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+    .s-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 30px; font-weight: 500;
+      color: var(--acc, var(--blue));
+    }
+    .s-unit { font-size: 11px; color: var(--txt3); margin-top: 3px; }
+    .s-pill {
+      display: inline-flex; align-items: center;
+      font-size: 9px; font-weight: 600; letter-spacing: .8px;
+      padding: 3px 9px; border-radius: 100px; margin-top: 7px; border: 1px solid;
+    }
+    .st-ok   { background: #edfaf4; color: #0e7a4a; border-color: #8edcba; }
+    .st-warn { background: #fef9ec; color: #9a7200; border-color: #f0d078; }
+    .st-crit { background: #fef2f2; color: #b91c1c; border-color: #f0a0a0; }
+    .st-wait { background: var(--bg); color: var(--txt3); border-color: var(--border2); }
+
+    .s-rows { display: flex; flex-direction: column; gap: 4px; }
+    .irow {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 3px 0; border-bottom: 1px solid var(--border);
+    }
+    .irow:last-child { border: none; }
+    .ik { font-size: 9px; color: var(--txt3); font-weight: 600; letter-spacing: .4px; }
+    .iv { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--txt2); }
+
+    /* ─── TANK ──────────────────────────────────────── */
+    .s-viz.tank-wrap { display:flex; align-items:flex-end; gap:9px; height:128px; margin-top:4px; }
+    .tank-col { display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .tank {
+      width: 50px; height: 98px;
+      border: 1.5px solid var(--border2); border-radius: 4px 4px 6px 6px;
+      position: relative; overflow: hidden; background: var(--bg);
+    }
+    .tank-water {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, #bfdffa, #3b9de8);
+      transition: height 1.8s cubic-bezier(.34,1.2,.64,1);
+    }
+    .tank-water::after {
+      content:''; position:absolute; top:-3px; left:0; right:0; height:6px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+      animation:wsurf 3s ease-in-out infinite; border-radius:50%;
+    }
+    @keyframes wsurf{0%,100%{transform:scaleX(1) translateX(0)} 50%{transform:scaleX(1.05) translateX(3px)}}
+    .bbl { position:absolute; border-radius:50%; background:rgba(255,255,255,.5); animation:brise linear infinite; }
+    @keyframes brise{0%{bottom:0;opacity:.7}100%{bottom:100%;opacity:0}}
+    .tank-pct { font-family:'DM Mono',monospace; font-size:9px; color:var(--txt3); }
+    .tank-ruler { display:flex; flex-direction:column; justify-content:space-between; height:98px; padding:2px 0; }
+    .tank-ruler span { font-family:'DM Mono',monospace; font-size:7px; color:var(--txt3); display:flex; align-items:center; gap:3px; }
+    .tank-ruler span::after { content:''; width:5px; height:1px; background:var(--border2); }
+
+    /* ─── PIPE / FAN ────────────────────────────────── */
+    .s-viz.pipe-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; height:128px; justify-content:center; margin-top:4px; }
+    .pipe-row { display:flex; align-items:center; width:100%; }
+    .pipe-cap { width:10px; height:22px; border:1.5px solid var(--border2); background:var(--bg); }
+    .pipe-cap.l{border-right:none;border-radius:4px 0 0 4px;}
+    .pipe-cap.r{border-left:none;border-radius:0 4px 4px 0;}
+    .pipe-seg{flex:1;height:22px;position:relative;overflow:hidden;border-top:1.5px solid var(--border2);border-bottom:1.5px solid var(--border2);background:#f0f8ff;}
+    .fp{position:absolute;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);animation:fpm linear infinite;}
+    @keyframes fpm{0%{left:-25%}100%{left:115%}}
+    .fan-hub{width:42px;height:42px;border:1.5px solid var(--border2);border-radius:50%;background:var(--surface);display:grid;place-items:center;flex-shrink:0;}
+    .fan-svg{animation:fspin linear 3s infinite;}
+    @keyframes fspin{to{transform:rotate(360deg)}}
+    .pipe-stats{display:flex;justify-content:space-between;width:100%;}
+    .ps{text-align:center;}
+    .psl{font-size:9px;color:var(--txt3);font-weight:600;}
+    .psv{font-family:'DM Mono',monospace;font-size:11px;color:var(--green);}
+
+    /* ─── THERMOMETER ───────────────────────────────── */
+    .s-viz.thermo-wrap{display:flex;gap:10px;align-items:center;height:128px;margin-top:4px;}
+    .thermo-col{display:flex;flex-direction:column;align-items:center;}
+    .thermo-tube{width:16px;height:84px;border:1.5px solid var(--border2);border-bottom:none;border-radius:8px 8px 0 0;position:relative;overflow:hidden;background:var(--bg);}
+    .thermo-merc{position:absolute;bottom:0;left:2px;right:2px;background:linear-gradient(0deg,#c0392b,var(--orange));border-radius:4px 4px 0 0;transition:height 1.5s ease;}
+    .thermo-neck{width:7px;height:6px;border-left:1.5px solid var(--border2);border-right:1.5px solid var(--border2);align-self:center;background:var(--bg);}
+    .thermo-bulb{width:24px;height:24px;border:1.5px solid var(--border2);border-radius:50%;background:radial-gradient(circle at 35% 35%,#fdba74,#c0392b);transition:background 1s;}
+    .thermo-scale{display:flex;flex-direction:column;justify-content:space-between;height:84px;padding:2px 0;margin-left:3px;}
+    .thermo-scale span{font-family:'DM Mono',monospace;font-size:7px;color:var(--txt3);display:flex;align-items:center;gap:3px;}
+    .thermo-scale span::before{content:'';width:5px;height:1px;background:var(--border2);}
+
+    /* ─── GAUGE ─────────────────────────────────────── */
+    .s-viz.hum-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;height:128px;justify-content:center;margin-top:4px;}
+    .gauge-outer{position:relative;width:144px;height:78px;}
+    .gauge-ct{position:absolute;bottom:0;left:50%;transform:translateX(-50%);text-align:center;}
+    .g-num{font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--yellow);}
+    .g-unit{font-size:9px;color:var(--txt3);}
+    .drops-row{display:flex;gap:5px;align-items:flex-end;height:20px;}
+    .drp{width:9px;clip-path:polygon(50% 0%,100% 65%,80% 100%,20% 100%,0% 65%);transition:height .9s,background .9s,opacity .9s;}
+
+    /* ─── GAS ───────────────────────────────────────── */
+    .s-viz.gas-wrap{display:flex;flex-direction:column;gap:9px;height:128px;justify-content:center;margin-top:4px;}
+    .gas-icon-row{display:flex;align-items:center;gap:9px;}
+    .gas-emoji{font-size:20px;animation:gfloat 2.5s ease-in-out infinite;}
+    @keyframes gfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    .gas-bars{flex:1;display:flex;flex-direction:column;gap:5px;}
+    .gbrow{display:flex;align-items:center;gap:6px;}
+    .gbl{font-size:9px;color:var(--txt3);width:26px;font-weight:600;}
+    .gbt{flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+    .gbf{height:100%;border-radius:4px;transition:width 1.5s ease;}
+    .gbv{font-family:'DM Mono',monospace;font-size:9px;width:30px;text-align:right;}
+    .gas-ptcl{display:flex;justify-content:center;gap:5px;align-items:flex-end;height:20px;}
+    .gp{width:4px;border-radius:3px;animation:gprs ease-in-out infinite;}
+    @keyframes gprs{0%,100%{transform:scaleY(1);opacity:.3}50%{transform:scaleY(1.7);opacity:.85}}
+
+    /* ─── PATROLI ───────────────────────────────────── */
+    .s-viz.patrol-wrap{display:flex;gap:10px;height:128px;align-items:center;margin-top:4px;}
+    .pat-ring-outer{position:relative;width:76px;height:76px;flex-shrink:0;}
+    .pat-ring-num{position:absolute;inset:0;display:grid;place-items:center;font-family:'DM Mono',monospace;font-size:18px;color:var(--blue);}
+    .pat-list{flex:1;display:flex;flex-direction:column;gap:4px;overflow:hidden;}
+    .pat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--bg);border-radius:6px;border-left:2px solid var(--blue);}
+    .pat-name{font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;color:var(--txt);}
+    .pat-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--blue);}
+
+    /* ─── TABLE ─────────────────────────────────────── */
+    .tbl-section{margin-top:4px;}
+    .iot-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+    .iot-tab{padding:6px 15px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--txt2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;}
+    .iot-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 3px 10px rgba(43,125,233,.2);}
+    .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:240px;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    thead th{position:sticky;top:0;padding:10px 13px;text-align:left;font-size:9px;font-weight:600;color:var(--txt3);background:var(--surface);border-bottom:1px solid var(--border);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+    tbody tr:last-child{border:none;}
+    tbody tr:hover{background:var(--bg);}
+    td{padding:8px 13px;font-size:12px;white-space:nowrap;color:var(--txt);}
+    .td-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--blue);background:#ebf2fd;padding:2px 7px;border-radius:4px;}
+    .tbl-empty{padding:32px;text-align:center;color:var(--txt3);font-size:12px;}
+
+    /* ─── Placeholder pages ─────────────────────────── */
+    .page-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px;color:var(--txt3);}
+    .page-placeholder .ph-ico{font-size:40px;opacity:.4;}
+    .page-placeholder h2{font-size:18px;color:var(--txt2);font-weight:500;}
+    .page-placeholder p{font-size:12px;}
+
+
+    /* ─── Detail Button ─────────────────────────────── */
+    .s-detail-btn{position:absolute;top:12px;right:12px;padding:4px 10px;background:#ebf2fd;border:1px solid #c3d9fa;border-radius:7px;cursor:pointer;font-size:10px;font-weight:600;color:var(--blue);font-family:'DM Sans',sans-serif;transition:all .16s;white-space:nowrap;z-index:2;}
+    .s-detail-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 3px 10px rgba(43,125,233,.3);}
+
+    /* ─── IoT Detail Drawer ──────────────────────────── */
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes slideIn{from{right:-540px}to{right:0}}
+    .detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:100;}
+    .detail-overlay.show{display:block;animation:fadeIn .22s ease;}
+    .detail-drawer{position:fixed;right:-540px;top:0;bottom:0;width:520px;background:var(--surface);border-left:1px solid var(--border);box-shadow:-16px 0 48px rgba(0,0,0,.16);z-index:101;display:flex;flex-direction:column;transition:right .3s cubic-bezier(.4,0,.2,1);}
+    .detail-drawer.show{right:0;}
+    .detail-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+    .detail-title{font-size:15px;font-weight:700;color:var(--txt);}
+    .detail-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:14px;color:var(--txt2);display:grid;place-items:center;transition:all .15s;}
+    .detail-close:hover{background:#fef2f2;color:var(--red);border-color:#fecaca;}
+    .detail-tabs{display:flex;gap:6px;padding:12px 22px;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .detail-tab{padding:5px 14px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--txt2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;}
+    .detail-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 2px 8px rgba(43,125,233,.25);}
+    .detail-body{flex:1;overflow-y:auto;padding:18px 22px;}
+    .detail-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+    .detail-stat{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px 15px;transition:box-shadow .15s;}
+    .detail-stat:hover{box-shadow:0 2px 10px rgba(0,0,0,.07);}
+    .detail-stat-label{font-size:9px;font-weight:700;letter-spacing:1.4px;color:var(--txt3);text-transform:uppercase;margin-bottom:5px;}
+    .detail-stat-value{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--blue);}
+    .detail-stat-unit{font-size:10px;color:var(--txt3);margin-top:3px;}
+    .detail-tbl-title{font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:8px;}
+    .detail-ts{font-size:11px;color:var(--txt3);padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px;}
+
+    /* ─── Data Entry & Change Password ──────────────── */
+    .de-wrap{padding:4px 0;animation:deIn .3s ease;}
+    @keyframes deIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .de-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+    .de-title{font-size:18px;font-weight:600;color:var(--txt);}
+    .de-sub{font-size:12px;color:var(--txt3);margin-top:2px;}
+    .de-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--txt3);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;}
+    .de-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;}
+    .de-card-title{font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+    .de-card-ico{font-size:15px;}
+    .de-refresh-btn{margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--txt3);cursor:pointer;transition:all .15s;}
+    .de-refresh-btn:hover{border-color:var(--blue);color:var(--blue);}
+    .de-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+    .de-field{display:flex;flex-direction:column;gap:6px;}
+    .de-full{grid-column:1/-1;}
+    .de-label{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--txt3);text-transform:uppercase;}
+    .de-unit{font-weight:400;letter-spacing:0;text-transform:none;color:var(--txt3);}
+    .de-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--txt);background:var(--bg);outline:none;transition:border-color .2s,box-shadow .2s,background .2s;}
+    .de-input:focus{border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(43,125,233,.10);}
+    .de-input::placeholder{color:var(--txt3);}
+    .de-select{cursor:pointer;}
+    .de-textarea{resize:vertical;min-height:80px;line-height:1.5;}
+    .de-status-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:16px;}
+    .de-status-success{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
+    .de-status-error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+    .de-status-loading{background:#eff6ff;color:var(--blue);border:1px solid #bfdbfe;}
+    .de-actions{display:flex;justify-content:flex-end;gap:10px;}
+    .de-btn{padding:9px 20px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;}
+    .de-btn-primary{background:var(--blue);color:#fff;}
+    .de-btn-primary:hover{background:#1a6dd8;transform:translateY(-1px);box-shadow:0 3px 12px rgba(43,125,233,.3);}
+    .de-btn-ghost{background:transparent;color:var(--txt2);border:1.5px solid var(--border);}
+    .de-btn-ghost:hover{background:var(--bg);}
+    .de-table-wrap{overflow-x:auto;}
+    .de-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .de-table th{text-align:left;padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--txt3);border-bottom:1px solid var(--border);background:var(--bg);}
+    .de-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--txt2);}
+    .de-table tr:last-child td{border-bottom:none;}
+    .de-table tr:hover td{background:var(--bg);}
+    .de-empty{text-align:center;padding:32px;color:var(--txt3);font-size:13px;}
+    .cp-input-wrap{position:relative;display:flex;align-items:center;}
+    .cp-input-wrap .de-input{padding-right:38px;}
+    .cp-eye{position:absolute;right:12px;cursor:pointer;font-size:15px;color:var(--txt3);user-select:none;transition:color .15s;}
+    .cp-eye:hover{color:var(--blue);}
+    .cp-rules{margin-top:12px;display:flex;flex-direction:column;gap:5px;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border);}
+    .cp-rule{font-size:12px;color:var(--txt3);transition:color .2s;}
+
+    /* ─── Project Pages ──────────────────────────────── */
+    .proj-wrap{padding:4px 0;animation:deIn .3s ease;}
+    .proj-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+    .proj-title{font-size:18px;font-weight:600;color:var(--txt);}
+    .proj-sub{font-size:12px;color:var(--txt3);margin-top:2px;}
+    .proj-count-badge{font-size:11px;font-weight:600;color:var(--blue);background:#ebf2fd;border:1px solid #c3d9fa;padding:4px 12px;border-radius:100px;}
+    .proj-search{width:100%;padding:9px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--txt);background:var(--surface);outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:16px;}
+    .proj-search:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(43,125,233,.1);}
+    .proj-search::placeholder{color:var(--txt3);}
+    .proj-list{display:flex;flex-direction:column;gap:10px;}
+    .proj-empty{text-align:center;padding:60px 20px;color:var(--txt3);font-size:13px;}
+    .proj-empty-ico{font-size:36px;opacity:.4;margin-bottom:10px;}
+    .proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;}
+    .proj-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc,var(--blue));}
+    .proj-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.08);border-color:var(--border2);transform:translateY(-1px);}
+    .proj-card-icon{width:40px;height:40px;border-radius:10px;background:#ebf2fd;display:grid;place-items:center;font-size:18px;flex-shrink:0;}
+    .proj-card-body{flex:1;min-width:0;}
+    .proj-card-name{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:3px;}
+    .proj-card-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--txt3);}
+    .proj-progress-track{height:5px;background:var(--bg);border-radius:3px;border:1px solid var(--border);overflow:hidden;margin-top:8px;}
+    .proj-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .8s ease;}
+    .proj-progress-label{font-size:10px;color:var(--txt3);margin-top:3px;display:flex;justify-content:space-between;}
+    .proj-card-arrow{font-size:18px;color:var(--txt3);flex-shrink:0;transition:transform .15s;}
+    .proj-card:hover .proj-card-arrow{transform:translateX(4px);color:var(--blue);}
+    .proj-status{font-size:9px;font-weight:700;letter-spacing:.8px;padding:3px 8px;border-radius:100px;border:1px solid;flex-shrink:0;}
+    .proj-status.ongoing{background:#eff6ff;color:var(--blue);border-color:#bfdbfe;}
+    .proj-status.completed{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;}
+    .proj-status.recent{background:#fef9ec;color:#92400e;border-color:#fde68a;}
+    .proj-fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(43,125,233,.5);display:grid;place-items:center;transition:all .2s;z-index:50;font-family:sans-serif;line-height:1;}
+    .proj-fab:hover{background:#1a6dd8;transform:scale(1.1);}
+    .proj-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;}
+    .proj-modal-overlay.show{display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
+    .proj-modal{background:var(--surface);border-radius:16px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:modalPop .25s cubic-bezier(.34,1.2,.64,1);}
+    @keyframes modalPop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+    .proj-modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;}
+    .proj-modal-title{font-size:15px;font-weight:700;color:var(--txt);}
+    .proj-modal-close{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;color:var(--txt2);display:grid;place-items:center;transition:all .15s;}
+    .proj-modal-close:hover{background:#fef2f2;color:var(--red);border-color:#fecaca;}
+    .proj-modal-body{padding:20px 24px 24px;}
+    .proj-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:4px;}
+    .proj-modal-full{grid-column:1/-1;}
+    .proj-det-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:150;}
+    .proj-det-overlay.show{display:block;animation:fadeIn .2s ease;}
+    .proj-det-drawer{position:fixed;right:-580px;top:0;bottom:0;width:560px;background:var(--surface);border-left:1px solid var(--border);box-shadow:-12px 0 40px rgba(0,0,0,.14);z-index:151;display:flex;flex-direction:column;transition:right .3s cubic-bezier(.4,0,.2,1);overflow-y:auto;}
+    .proj-det-drawer.show{right:0;}
+    .proj-det-head{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;}
+    .proj-det-name{font-size:16px;font-weight:700;color:var(--txt);}
+    .proj-det-date{font-size:11px;color:var(--txt3);margin-top:3px;}
+    .proj-det-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px;}
+    .proj-info-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt3);margin-bottom:6px;}
+    .proj-info-val{font-size:13px;color:var(--txt2);line-height:1.6;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+    .proj-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .proj-big-track{height:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border);overflow:hidden;margin-bottom:8px;}
+    .proj-big-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s ease;}
+    .proj-big-pct{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:var(--blue);margin-bottom:6px;}
+    .proj-del-btn{padding:10px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;width:100%;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .proj-del-btn:hover{background:#fee2e2;}
+    .proj-range{width:100%;accent-color:var(--blue);cursor:pointer;margin-top:6px;}
+
+    /* ─── Water Level Setting ────────────────────────── */
+    .wls-stat{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px 15px;text-align:center;}
+    .wls-stat-lbl{font-size:9px;font-weight:700;letter-spacing:1.4px;color:var(--txt3);text-transform:uppercase;margin-bottom:5px;}
+    .wls-stat-val{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--blue);}
+    .wls-stat-unit{font-size:10px;color:var(--txt3);margin-top:2px;}
+
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+    .de-wrap { padding: 4px 0; animation: defadeIn .3s ease; }
+@keyframes defadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.de-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.de-title { font-size:18px; font-weight:600; color:var(--txt); }
+.de-sub { font-size:12px; color:var(--txt3); margin-top:2px; }
+.de-date { font-family:'DM Mono',monospace; font-size:11px; color:var(--txt3); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 12px; }
+.de-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; }
+.de-card-title { font-size:13px; font-weight:600; color:var(--txt2); margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+.de-card-ico { font-size:15px; }
+.de-refresh-btn { margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; padding:3px 10px; font-size:11px; color:var(--txt3); cursor:pointer; transition:all .15s; }
+.de-refresh-btn:hover { border-color:var(--blue); color:var(--blue); }
+.de-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+.de-field { display:flex; flex-direction:column; gap:6px; }
+.de-full { grid-column:1 / -1; }
+.de-label { font-size:10px; font-weight:600; letter-spacing:1px; color:var(--txt3); text-transform:uppercase; }
+.de-unit { font-weight:400; letter-spacing:0; text-transform:none; color:var(--txt3); }
+.de-input { width:100%; padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--txt); background:var(--bg); outline:none; transition:border-color .2s,box-shadow .2s,background .2s; }
+.de-input:focus { border-color:var(--blue); background:var(--surface); box-shadow:0 0 0 3px rgba(43,125,233,.10); }
+.de-input::placeholder { color:var(--txt3); }
+.de-select { cursor:pointer; }
+.de-textarea { resize:vertical; min-height:80px; line-height:1.5; }
+.de-status-bar { display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:8px; font-size:13px; font-weight:500; margin-bottom:16px; }
+.de-status-success { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+.de-status-error { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.de-status-loading { background:#eff6ff; color:var(--blue); border:1px solid #bfdbfe; }
+.de-actions { display:flex; justify-content:flex-end; gap:10px; }
+.de-btn { padding:9px 20px; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; border:none; }
+.de-btn-primary { background:var(--blue); color:white; }
+.de-btn-primary:hover { background:#1a6dd8; transform:translateY(-1px); }
+.de-btn-ghost { background:transparent; color:var(--txt2); border:1.5px solid var(--border); }
+.de-btn-ghost:hover { background:var(--bg); }
+.de-table-wrap { overflow-x:auto; }
+.de-table { width:100%; border-collapse:collapse; font-size:12px; }
+.de-table th { text-align:left; padding:8px 12px; font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--txt3); border-bottom:1px solid var(--border); }
+.de-table td { padding:10px 12px; border-bottom:1px solid var(--border); color:var(--txt2); }
+.de-table tr:last-child td { border-bottom:none; }
+.de-table tr:hover td { background:var(--bg); }
+.de-empty { text-align:center; padding:32px; color:var(--txt3); font-size:13px; }
+  </style>
+</head>
+<body>
+
+<!-- ════ SIDEBAR ════ -->
+<aside class="sidebar">
+  <div class="logo-wrap">
+    <div class="logo-tag">SAIL</div>
+    <div class="logo-sub">Support Operational System</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section-label">Main Menu</div>
+    <div class="nav-item active" onclick="loadPage('iot')"><span class="ico">📡</span> Dashboard IoT</div>
+
+    <div class="nav-section-label">Project</div>
+    <div class="nav-group">
+      <div class="nav-group-head" onclick="toggleNav(this)"><span class="ico">📋</span><span>Project Activity</span><span class="arr">▾</span></div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="loadPage('recent')">Recent Project</div>
+        <div class="nav-sub-item" onclick="loadPage('completed')">Completed Project</div>
+        <div class="nav-sub-item" onclick="loadPage('ongoing')">On Going Project</div>
+      </div>
+    </div>
+
+    <div class="nav-section-label">Data</div>
+    <div class="nav-group">
+      <div class="nav-group-head" onclick="toggleNav(this)"><span class="ico">🗄️</span><span>Data &amp; Information</span><span class="arr">▾</span></div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="loadPage('production')">Data Entry Production</div>
+        <div class="nav-sub-item" onclick="loadPage('utility')">Data Entry Utility</div>
+        <div class="nav-sub-item" onclick="loadPage('laboratorium')">Data Entry Laboratorium</div>
+        <div class="nav-sub-item" onclick="loadPage('limbah')">Data Entry Limbah</div>
+      </div>
+    </div>
+
+    <div class="nav-item" onclick="loadPage('reporting')"><span class="ico">📊</span> Reporting</div>
+
+    <div class="nav-section-label">Settings</div>
+    <div class="nav-group">
+      <div class="nav-group-head" onclick="toggleNav(this)"><span class="ico">⚙️</span><span>Settings</span><span class="arr">▾</span></div>
+      <div class="nav-sub">
+        <div class="nav-sub-item" onclick="loadPage('change-password')">Change Password</div>
+        <div class="nav-sub-item" onclick="loadPage('water-level-setting')">Change Water Level</div>
+        <div class="nav-sub-item" onclick="loadPage('tank-dimension-setting')">Change Containers Volume</div>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="logout-btn" onclick="confirmLogout()"><span>🚪</span> Logout</div>
+  </div>
+</aside>
+
+<!-- ════ MAIN ════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-page" id="page-title">Dashboard IoT</div>
+      <div class="topbar-crumb" id="page-crumb">SAIL / Dashboard / Monitor IoT</div>
+    </div>
+    <div class="topbar-right">
+      <div class="esp-badge waiting" id="esp-badge">
+        <div class="esp-dot"></div>
+        <span id="esp-label">Waiting for ESP<span class="dots"></span></span>
+      </div>
+      <div class="clock-txt" id="clock">--:--:--</div>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<script>
+// ══ STATE ══════════════════════════════════════════
+let espConnected = false;
+let _activeTab   = 'water-level';
+
+const API = {
+  summary:    '/api/iot/dashboard/summary',
+  waterLevel: '/api/iot/water-level',
+  waterFlow:  '/api/iot/water-flow',
+  lingkungan: '/api/iot/lingkungan',
+  patroli:    '/api/iot/patroli',
+};
+
+// ══ UTILS ══════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const set = (id, v) => { const el=$(id); if(el) el.textContent=v; };
+const fmtT  = ts => ts ? new Date(ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '—';
+const fmtDT = ts => ts ? new Date(ts).toLocaleString('id-ID') : '—';
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+// ══ CLOCK ══════════════════════════════════════════
+setInterval(() => set('clock', new Date().toLocaleTimeString('id-ID')), 1000);
+
+// ══ SIDEBAR ════════════════════════════════════════
+function toggleNav(el) {
+  el.classList.toggle('open');
+  el.nextElementSibling.classList.toggle('show');
+}
+
+function loadPage(page) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const map = {
+    iot:['Dashboard IoT','SAIL / Dashboard / Monitor IoT'],
+    recent:['Recent Project','SAIL / Project / Recent'],
+    completed:['Completed Project','SAIL / Project / Completed'],
+    ongoing:['On Going Project','SAIL / Project / On Going'],
+    production:['Data Entry Production','SAIL / Data / Production'],
+    utility:['Data Entry Utility','SAIL / Data / Utility'],
+    laboratorium:['Data Entry Laboratorium','SAIL / Data / Laboratorium'],
+    limbah:['Data Entry Limbah','SAIL / Data / Limbah'],
+    reporting:['Reporting','SAIL / Reporting'],
+    'change-email':['Change Email','SAIL / Setting / Email'],
+    'change-password':['Change Password','SAIL / Setting / Password'],
+    'water-level-setting':['Water Level Setting','SAIL / Setting / Water Level'],
+    'tank-dimension-setting':['Change Containers Volume','SAIL / Setting / Sensor Manager'],
+  };
+  const [title, crumb] = map[page] || [page,'SAIL'];
+  set('page-title', title);
+  set('page-crumb', crumb);
+  const content = $('content');
+  if (page === 'iot') {
+    renderIoT(content);
+  } else if (page === 'ongoing') {
+    content.innerHTML = getProjectHTML('ongoing','On Going Projects'); initProjectPage('ongoing');
+  } else if (page === 'recent') {
+    content.innerHTML = getProjectHTML('recent','Recent Projects'); initProjectPage('recent');
+  } else if (page === 'completed') {
+    content.innerHTML = getProjectHTML('completed','Completed Projects'); initProjectPage('completed');
+  } else if (page === 'production') {
+    content.innerHTML = getDataEntryHTML('production','Data Entry Production','Record daily production data','🏭'); initDataEntryForm('production');
+  } else if (page === 'utility') {
+    content.innerHTML = getDataEntryHTML('utility','Data Entry Utility','Record daily utility data','⚡'); initDataEntryForm('utility');
+  } else if (page === 'laboratorium') {
+    content.innerHTML = getDataEntryHTML('laboratorium','Data Entry Laboratory','Record daily laboratory data','🧪'); initDataEntryForm('laboratorium');
+  } else if (page === 'limbah') {
+    content.innerHTML = getDataEntryHTML('limbah','Data Entry Waste','Record daily waste data','♻️'); initDataEntryForm('limbah');
+  } else if (page === 'change-password') {
+    content.innerHTML = getChangePasswordHTML();
+  } else if (page === 'water-level-setting') {
+    content.innerHTML = getWaterLevelSettingHTML();
+    initWaterLevelSetting();
+  } else if (page === 'tank-dimension-setting') {
+    content.innerHTML = getTankDimensionHTML();
+    initTankDimensionSetting();
+  } else if (page === 'reporting') {
+    content.innerHTML = getReporting();
+    initReportingForm();
+  } else {
+    content.innerHTML = `<div class="page-placeholder"><div class="ph-ico">🚧</div><h2>${title}</h2><p>This page is under development.</p></div>`;
+  }
+}
+
+function getReporting(state) {
+    return `
+    <div class="de-wrap">
+        <div class="de-header">
+            <div>
+                <h2 class="de-title">Reporting</h2>
+                <p class="de-sub">SAIL / Reporting</p>
+            </div>
+        </div>
+
+        <div class="de-card">
+            <form id="reportForm">
+                <div class="de-grid">
+                    <div class="de-field de-full">
+                        <label class="de-label">Judul Laporan</label>
+                        <input type="text" class="de-input" placeholder="Contoh: Kerusakan Sensor Tanki A" required>
+                    </div>
+
+                    <div class="de-field">
+                        <label class="de-label">Kategori Laporan</label>
+                        <select class="de-input de-select">
+                            <option value="teknis">Masalah Teknis</option>
+                            <option value="operasional">Kegiatan Operasional</option>
+                            <option value="keamanan">Keamanan/Patroli</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div class="de-field">
+                        <label class="de-label">Tingkat Prioritas</label>
+                        <select class="de-input de-select">
+                            <option value="low">Rendah</option>
+                            <option value="medium">Sedang</option>
+                            <option value="high">Tinggi/Urgent</option>
+                        </select>
+                    </div>
+                </div>
+
+                 <div class="Electricity">
+                    <div class="Electric Usage">
+                        <label class="de-label">Laporan penggunaan listrik</label>
+                        <input type="text" class="de-input" placeholder="Contoh:100 volt / jam" required>
+                    </div>
+
+                 <div class="Utility report">
+                    <div class="Durability & condition">
+                        <label class = "de-label"> Laporan Durability Utility </label>
+                        <select class="de-input de-select">
+                            <option value="Baik">Rendah</option>
+                            <option value="Normal">Sedang</option>
+                            <option value="Rusak">Tinggi/Urgent</option>
+                        </select>
+                    </div>
+
+
+                <div class="de-actions">
+                    <button type="submit" class="de-btn de-btn-primary">Kirim Laporan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    `;
+    // Pastikan kode ini berjalan setelah DOM dimuat
+document.addEventListener('DOMContentLoaded', () => {
+    const navItems = document.querySelectorAll('.nav-item');
+    const mainContent = document.getElementById('mainContent'); // Pastikan ID ini sesuai dengan <section> kamu
+
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const page = this.getAttribute('data-page');
+            
+            if (page === 'reporting') {
+                // Menghapus tulisan "Under development" dan menggantinya dengan form
+                mainContent.innerHTML = getReporting();
+                
+                // Update judul di atas agar sesuai
+                document.getElementById('pageTitle').innerText = "Reporting";
+                document.getElementById('breadcrumb').innerText = "SAIL / Reporting";
+            }
+        });
+    });
+});
+}
+
+
+// ══ ESP STATUS ═════════════════════════════════════
+function setEspStatus(state) {
+  const badge = $('esp-badge');
+  const label = $('esp-label');
+  badge.className = 'esp-badge ' + state;
+  if (state === 'connected') {
+    label.innerHTML = 'ESP Connected';
+  } else if (state === 'error') {
+    label.innerHTML = 'Connection Failed';
+  } else {
+    label.innerHTML = 'Waiting for ESP<span class="dots"></span>';
+  }
+}
+
+function showOverlays(show) {
+  ['wl','wf','suhu','kel','gas','pat'].forEach(k => {
+    const ov = $('ov-'+k);
+    if (ov) ov.classList.toggle('show', show);
+  });
+}
+
+// ══ IOT RENDER ═════════════════════════════════════
+function renderIoT(content) {
+  content.innerHTML = getIoTHTML();
+  initWidgets();
+  renderTankCards();   // build dynamic tanks from localStorage
+  fetchSummary();
+  if (window._poll) clearInterval(window._poll);
+  window._poll = setInterval(() => {
+    if (!$('wl-val')) { clearInterval(window._poll); return; }
+    fetchSummary();
+    // table removed — data via detail drawer
+  }, 30000);
+}
+
+function getIoTHTML() {
+  const ov = `
+    <div class="esp-waiting-overlay show" id="ov-ID">
+      <div class="esp-wait-icon">🔌</div>
+      <div class="esp-wait-txt">Waiting for ESP<span class="dots"></span></div>
+      <div class="esp-wait-sub">Belum ada data masuk</div>
+    </div>`;
+
+  return `
+  <div class="sensor-grid">
+
+    <!-- TANGKI AIR — DYNAMIC MULTI SENSOR -->
+    <div class="s-card" style="--acc:var(--blue)">
+      <div class="s-bar"></div>
+      ${ov.replace('ov-ID','ov-wl')}
+      <div class="s-label">Water Level</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="s-pill st-wait" id="wl-status" style="margin:0">—</div>
+        <button class="s-detail-btn" style="position:static" onclick="openDetail('water-level')">Detail ↗</button>
+      </div>
+      <!-- tanks rendered dynamically by renderTankCards() -->
+      <div id="wl-tanks-container" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;min-height:130px"></div>
+      <!-- volume summary -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:9px;font-weight:700;color:var(--txt3);letter-spacing:1px">TOTAL VOLUME</span>
+          <span style="font-size:9px;color:var(--txt3)" id="wl-time">—</span>
+        </div>
+        <div id="wl-vol-rows" style="display:flex;flex-direction:column;gap:3px"></div>
+        <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:9px;font-weight:700;color:var(--txt3)">GRAND TOTAL</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--txt)" id="wl-vol-total">— L</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px">
+          <button onclick="loadPage('tank-dimension-setting')" style="font-size:9px;padding:2px 10px;background:#ebf2fd;border:1px solid #c3d9fa;border-radius:5px;color:var(--blue);font-weight:600;cursor:pointer;font-family:inherit">⚙ Kelola Sensor</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WATER FLOW -->
+    <div class="s-card" style="--acc:var(--green)">
+      <div class="s-bar"></div>
+      ${ov.replace('ov-ID','ov-wf')}
+      <div class="s-label">Water Flow</div>
+      <div class="s-header">
+        <div>
+          <div class="s-num" id="wf-val">—</div>
+          <div class="s-unit">L/min</div>
+          <div class="s-pill st-wait" id="wf-status">—</div>
+        <button class="s-detail-btn" onclick="openDetail('water-flow')">Detail ↗</button>
+        </div>
+      </div>
+      <div class="s-viz pipe-wrap">
+        <div class="pipe-row">
+          <div class="pipe-cap l"></div>
+          <div class="pipe-seg"><div id="pfl"></div></div>
+          <div class="fan-hub">
+            <svg class="fan-svg" id="fan-svg" width="32" height="32" viewBox="0 0 40 40">
+              <g transform="translate(20,20)">
+                <ellipse rx="3" ry="7" transform="rotate(0)"   fill="#18a96a" opacity=".9"/>
+                <ellipse rx="3" ry="7" transform="rotate(60)"  fill="#18a96a" opacity=".6"/>
+                <ellipse rx="3" ry="7" transform="rotate(120)" fill="#18a96a" opacity=".4"/>
+                <ellipse rx="3" ry="7" transform="rotate(180)" fill="#18a96a" opacity=".9"/>
+                <ellipse rx="3" ry="7" transform="rotate(240)" fill="#18a96a" opacity=".6"/>
+                <ellipse rx="3" ry="7" transform="rotate(300)" fill="#18a96a" opacity=".4"/>
+                <circle r="4" fill="white" stroke="#18a96a" stroke-width="1.5"/>
+                <circle r="1.5" fill="#18a96a"/>
+              </g>
+            </svg>
+          </div>
+          <div class="pipe-seg"><div id="pfr"></div></div>
+          <div class="pipe-cap r"></div>
+        </div>
+        <div class="pipe-stats">
+          <div class="ps"><div class="psl">SPEED</div><div class="psv" id="wf-rpm">—</div></div>
+          <div class="ps"><div class="psl">VOLUME</div><div class="psv" id="wf-vol">—</div></div>
+          <div class="ps"><div class="psl">UPDATE</div><div class="psv" style="color:var(--txt3)" id="wf-time">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEMPERATURE -->
+    <div class="s-card" style="--acc:var(--orange)">
+      <div class="s-bar"></div>
+      ${ov.replace('ov-ID','ov-suhu')}
+      <div class="s-label">Temperature</div>
+      <div class="s-header">
+        <div>
+          <div class="s-num" id="suhu-val">—</div>
+          <div class="s-unit">°C</div>
+          <div class="s-pill st-wait" id="suhu-status">—</div>
+        <button class="s-detail-btn" onclick="openDetail('lingkungan')">Detail ↗</button>
+        </div>
+      </div>
+      <div class="s-viz thermo-wrap">
+        <div class="thermo-col">
+          <div class="thermo-tube"><div class="thermo-merc" id="thermo-merc" style="height:0%"></div></div>
+          <div class="thermo-neck"></div>
+          <div class="thermo-bulb" id="thermo-bulb"></div>
+        </div>
+        <div class="thermo-scale"><span>50°</span><span>40°</span><span>30°</span><span>20°</span><span>10°</span><span>0°</span></div>
+        <div class="s-rows">
+          <div class="irow"><span class="ik">TEMP</span><span class="iv" id="suhu-v2">—</span></div>
+          <div class="irow"><span class="ik">CONDITION</span><span class="iv" id="suhu-cond">—</span></div>
+          <div class="irow"><span class="ik">UPDATE</span><span class="iv" id="suhu-time">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUMIDITY -->
+    <div class="s-card" style="--acc:var(--yellow)">
+      <div class="s-bar"></div>
+      ${ov.replace('ov-ID','ov-kel')}
+      <div class="s-label">Humidity</div>
+      <div class="s-header">
+        <div>
+          <div class="s-num" id="kel-val">—</div>
+          <div class="s-unit">%RH</div>
+          <div class="s-pill st-wait" id="kel-status">—</div>
+        <button class="s-detail-btn" onclick="openDetail('lingkungan')">Detail ↗</button>
+        </div>
+      </div>
+      <div class="s-viz hum-wrap">
+        <div class="gauge-outer">
+          <svg width="144" height="78" viewBox="0 0 156 86" style="overflow:visible">
+            <defs>
+              <linearGradient id="gGrd" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="#2b7de9"/>
+                <stop offset="50%"  stop-color="#c99a0a"/>
+                <stop offset="100%" stop-color="#dc3545"/>
+              </linearGradient>
+            </defs>
+            <path d="M13 83 A65 65 0 0 1 143 83" stroke="#e4e8ed" stroke-width="11" fill="none" stroke-linecap="round"/>
+            <path id="g-arc" d="M13 83 A65 65 0 0 1 143 83" stroke="url(#gGrd)" stroke-width="11" fill="none" stroke-linecap="round"
+              stroke-dasharray="204" stroke-dashoffset="204" style="transition:stroke-dashoffset 1.6s ease"/>
+            <text x="7"   y="84" font-family="DM Mono,monospace" font-size="8" fill="#a0aec0">0</text>
+            <text x="70"  y="16" font-family="DM Mono,monospace" font-size="8" fill="#a0aec0">50</text>
+            <text x="138" y="84" font-family="DM Mono,monospace" font-size="8" fill="#a0aec0">100</text>
+            <g id="g-needle" transform="rotate(-90,78,83)">
+              <line x1="78" y1="83" x2="78" y2="24" stroke="#c99a0a" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="78" cy="83" r="4.5" fill="#c99a0a" stroke="white" stroke-width="2"/>
+            </g>
+          </svg>
+          <div class="gauge-ct"><div class="g-num" id="g-num">—</div><div class="g-unit">%RH</div></div>
+        </div>
+        <div class="drops-row" id="drops-row"></div>
+      </div>
+    </div>
+
+    <!-- GAS -->
+    <div class="s-card" style="--acc:var(--purple)">
+      <div class="s-bar"></div>
+      ${ov.replace('ov-ID','ov-gas')}
+      <div class="s-label">Gas Level</div>
+      <div class="s-header">
+        <div>
+          <div class="s-num" id="gas-val">—</div>
+          <div class="s-unit">ppm</div>
+          <div class="s-pill st-wait" id="gas-status">—</div>
+        <button class="s-detail-btn" onclick="openDetail('lingkungan')">Detail ↗</button>
+        </div>
+      </div>
+      <div class="s-viz gas-wrap">
+        <div class="gas-icon-row">
+          <div class="gas-emoji">☁️</div>
+          <div class="gas-bars">
+            <div class="gbrow">
+              <span class="gbl">VALUE</span>
+              <div class="gbt"><div class="gbf" id="gbar-main" style="width:0%;background:linear-gradient(90deg,#18a96a,#6f52d9)"></div></div>
+              <span class="gbv" id="gas-pct-lbl" style="color:var(--purple)">—</span>
+            </div>
+            <div class="gbrow">
+              <span class="gbl" style="color:var(--green)">SAFE</span>
+              <div class="gbt"><div class="gbf" style="width:50%;background:linear-gradient(90deg,rgba(24,169,106,.55),rgba(24,169,106,.1))"></div></div>
+              <span class="gbv" style="color:var(--green)">300</span>
+            </div>
+            <div class="gbrow">
+              <span class="gbl" style="color:var(--red)">MAX</span>
+              <div class="gbt"><div class="gbf" style="width:100%;background:linear-gradient(90deg,rgba(220,53,69,.55),rgba(220,53,69,.1))"></div></div>
+              <span class="gbv" style="color:var(--red)">600</span>
+            </div>
+          </div>
+        </div>
+        <div class="gas-ptcl" id="gas-ptcl"></div>
+      </div>
+    </div>
+
+    <!-- PATROLI -->
+    <div class="s-card" style="--acc:var(--blue)">
+      <div class="s-bar"></div>
+      ${ov.replace('ov-ID','ov-pat')}
+      <div class="s-label">Patrol Report</div>
+      <div class="s-header">
+        <div>
+          <div class="s-num" id="pat-total">—</div>
+          <div class="s-unit">total reports</div>
+          <button class="s-detail-btn" onclick="openDetail('patroli')">Detail ↗</button>
+        </div>
+      </div>
+      <div class="s-viz patrol-wrap">
+        <div class="pat-ring-outer">
+          <svg viewBox="0 0 88 88" width="76" height="76">
+            <defs>
+              <linearGradient id="rGrd" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stop-color="#2b7de9"/>
+                <stop offset="100%" stop-color="#18a96a"/>
+              </linearGradient>
+            </defs>
+            <circle cx="44" cy="44" r="35" stroke="#e4e8ed" stroke-width="7" fill="none"/>
+            <circle id="pat-ring" cx="44" cy="44" r="35"
+              stroke="url(#rGrd)" stroke-width="7" fill="none"
+              stroke-dasharray="220" stroke-dashoffset="220"
+              transform="rotate(-90,44,44)"
+              style="transition:stroke-dashoffset 1.6s ease;stroke-linecap:round"/>
+          </svg>
+          <div class="pat-ring-num" id="pat-ring-num">—</div>
+        </div>
+        <div class="pat-list" id="patrol-list">
+          <div style="font-size:11px;color:var(--txt3)">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABLE -->
+`;
+}
+
+// ══ INIT WIDGETS ═══════════════════════════════════
+function initWidgets() {
+  mkPipe('pfl',6); mkPipe('pfr',6);
+  const dr=$('drops-row');
+  if(dr) for(let i=0;i<7;i++){
+    const d=document.createElement('div'); d.className='drp'; d.id='drp-'+i;
+    d.style.cssText='height:6px;background:#e4e8ed;opacity:.3';
+    dr.appendChild(d);
+  }
+  const gp=$('gas-ptcl');
+  const gc=['#6f52d9','#a78bfa','#5b3fc9','#c4b5fd','#4c2ec4'];
+  if(gp) for(let i=0;i<10;i++){
+    const p=document.createElement('div'); p.className='gp';
+    p.style.cssText=`background:${gc[i%5]};height:${8+Math.random()*14}px;animation-duration:${.6+Math.random()*.9}s;animation-delay:${Math.random()*.8}s`;
+    gp.appendChild(p);
+  }
+}
+
+function mkPipe(id,n){
+  const c=$(id); if(!c) return;
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div'); p.className='fp';
+    p.style.cssText=`top:${7+Math.random()*6}px;height:${2+Math.random()*2}px;animation-duration:${.8+Math.random()*.9}s;animation-delay:${Math.random()*1.5}s;opacity:${.45+Math.random()*.4}`;
+    c.appendChild(p);
+  }
+}
+
+// ══ FETCH DATA (REAL API) ══════════════════════════
+async function fetchSummary() {
+  try {
+    const res = await fetch(API.summary);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if (!j.success) throw new Error(j.message || 'error');
+
+    espConnected = true;
+    setEspStatus('connected');
+    showOverlays(false);
+
+    const d = j.data;
+    applyWL(d.water_level);
+    applyWF(d.water_flow);
+    applyEnv(d.lingkungan);
+    applyPatroli(d.total_patroli);
+
+  } catch(e) {
+    console.warn('ESP tidak terhubung:', e.message);
+    espConnected = false;
+    setEspStatus('waiting');
+    showOverlays(true);
+    // table removed
+  }
+}
+
+function showOverlays(show) {
+  ['wl','wf','suhu','kel','gas','pat'].forEach(k=>{
+    const ov=$('ov-'+k); if(ov) ov.classList.toggle('show', show);
+  });
+}
+
+// ── Apply data ──────────────────────────────────────
+// ── SENSOR COLOR PALETTE ─────────────────────────────────
+const SENSOR_COLORS = [
+  { border:'#2b7de9', water:'linear-gradient(180deg,#bfdffa,#3b9de8)', text:'var(--blue)',   label:'#2b7de9' },
+  { border:'#7c3aed', water:'linear-gradient(180deg,#d8b4fe,#7c3aed)', text:'var(--purple)', label:'#7c3aed' },
+  { border:'#18a96a', water:'linear-gradient(180deg,#6ee7b7,#059669)', text:'var(--green)',  label:'#18a96a' },
+  { border:'#e07b2a', water:'linear-gradient(180deg,#fdba74,#c2410c)', text:'var(--orange)', label:'#e07b2a' },
+  { border:'#c99a0a', water:'linear-gradient(180deg,#fde68a,#b45309)', text:'var(--yellow)', label:'#c99a0a' },
+  { border:'#dc3545', water:'linear-gradient(180deg,#fca5a5,#b91c1c)', text:'var(--red)',    label:'#dc3545' },
+];
+
+function getSensors() {
+  const saved = localStorage.getItem('tank_sensors');
+  if (saved) return JSON.parse(saved);
+  // Default: 2 sensors
+  return [
+    { id:'s1', name:'Sensor 1', key:'s1', panjang:1, lebar:1, tinggi:1 },
+    { id:'s2', name:'Sensor 2', key:'s2', panjang:1, lebar:1, tinggi:1 },
+  ];
+}
+
+function renderTankCards() {
+  const container = document.getElementById('wl-tanks-container');
+  if (!container) return;
+  const sensors = getSensors();
+  container.innerHTML = sensors.map((s, i) => {
+    const col = SENSOR_COLORS[i % SENSOR_COLORS.length];
+    return `
+      <div style="flex:1;min-width:70px;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div style="font-size:8px;font-weight:700;color:${col.label};letter-spacing:.8px;text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name.toUpperCase()}</div>
+        <div style="display:flex;align-items:flex-end;gap:3px">
+          <div class="tank" style="border-color:${col.border};width:42px;height:90px">
+            <div id="tank-water-${s.id}" style="position:absolute;bottom:0;left:0;right:0;background:${col.water};height:0%;transition:height 1.8s cubic-bezier(.34,1.2,.64,1)">
+              <div class="bbl" style="width:3px;height:3px;left:25%;animation-duration:${2.5+i*.3}s"></div>
+              <div class="bbl" style="width:2px;height:2px;left:65%;animation-duration:${3+i*.2}s;animation-delay:.8s"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:space-between;height:90px;padding:1px 0">
+            <span style="font-family:'DM Mono',monospace;font-size:6px;color:var(--txt3)">MAX</span>
+            <span style="font-family:'DM Mono',monospace;font-size:6px;color:var(--txt3)">50</span>
+            <span style="font-family:'DM Mono',monospace;font-size:6px;color:var(--txt3)">0</span>
+          </div>
+        </div>
+        <div id="tank-pct-${s.id}" style="font-family:'DM Mono',monospace;font-size:8px;color:${col.label}">—</div>
+        <div id="tank-vol-${s.id}" style="font-family:'DM Mono',monospace;font-size:9px;font-weight:600;color:${col.label}">— L</div>
+        <div style="font-size:7px;color:var(--txt3)">${s.panjang}×${s.lebar}×${s.tinggi}m</div>
+      </div>
+      ${i < sensors.length - 1 ? '<div style="width:1px;height:70px;background:var(--border);align-self:center"></div>' : ''}
+    `;
+  }).join('');
+}
+
+function applyWL(wl) {
+  if (!wl) return;
+  set('wl-time', fmtT(wl.created_at));
+  const sensors = getSensors();
+  let grandTotal = 0;
+  let sumPct = 0;
+  const volRows = document.getElementById('wl-vol-rows');
+  const volRowsHTML = [];
+
+  sensors.forEach((s, i) => {
+    // Get value: try s.key from wl data (s1, s2, s3...) fallback to first available
+    const raw = wl[s.key] ?? wl['s'+(i+1)] ?? wl.tinggi_air ?? wl.water_level ?? 0;
+    const pct = clamp(+raw, 0, 100);
+    sumPct += pct;
+
+    // Update tank visual
+    const tw = document.getElementById('tank-water-' + s.id);
+    if (tw) tw.style.height = pct + '%';
+    const tp = document.getElementById('tank-pct-' + s.id);
+    if (tp) tp.textContent = pct + '%';
+
+    // Compute volume
+    const liter = Math.round(+(s.panjang||1) * +(s.lebar||1) * +(s.tinggi||1) * 1000);
+    const vol   = Math.round(liter * pct / 100);
+    grandTotal += vol;
+    const tv = document.getElementById('tank-vol-' + s.id);
+    if (tv) tv.textContent = vol.toLocaleString('id-ID') + ' L';
+
+    const col = SENSOR_COLORS[i % SENSOR_COLORS.length];
+    volRowsHTML.push(`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:9px;color:${col.label};font-weight:600">${s.name}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:var(--txt)">${vol.toLocaleString('id-ID')} L <span style="color:var(--txt3);font-size:8px">(${pct}%)</span></span>
+      </div>`);
+  });
+
+  if (volRows) volRows.innerHTML = volRowsHTML.join('');
+  set('wl-vol-total', grandTotal.toLocaleString('id-ID') + ' L');
+
+  const avg = sensors.length ? sumPct / sensors.length : 0;
+  pill('wl-status', avg, 70, 90);
+}
+
+function applyWF(wf) {
+  if(!wf) return;
+  const v = +(wf.rate ?? wf.flow_rate ?? wf.flow ?? 0);
+  set('wf-val', v);
+  set('wf-rpm', Math.round(v*8)+' rpm');
+  set('wf-vol', (wf.total ?? '—')+' mL');
+  set('wf-time', fmtT(wf.created_at));
+  const fan=$('fan-svg');
+  if(fan) fan.style.animationDuration = v>0 ? Math.max(.2,5/v)+'s' : '20s';
+  document.querySelectorAll('.fp').forEach(p=>{
+    p.style.animationPlayState = v>0?'running':'paused';
+    p.style.animationDuration  = v>0?(1.2/Math.max(v,.5))+'s':'2s';
+  });
+  pill('wf-status', v, 80, 120);
+}
+
+function applyEnv(env) {
+  if(!env) return;
+  const suhu = +(env.t ?? env.suhu ?? env.temperature ?? 0);
+  const lemb = +(env.h ?? env.kelembapan ?? env.humidity ?? 0);
+  const gas  = +(env.raw ?? env.gas ?? env.gas_value ?? 0);
+
+  set('suhu-val', suhu); set('suhu-v2', suhu+'°C'); set('suhu-time', fmtT(env.created_at));
+  const merc=$('thermo-merc'); if(merc) merc.style.height=clamp(suhu/50*100,0,100)+'%';
+  let cond='NORMAL', bb='radial-gradient(circle at 35% 35%,#93c5fd,#1d4ed8)';
+  if(suhu>=38){cond='SANGAT PANAS';bb='radial-gradient(circle at 35% 35%,#fca5a5,#b91c1c)';}
+  else if(suhu>=35){cond='PANAS';bb='radial-gradient(circle at 35% 35%,#fdba74,#c2410c)';}
+  else if(suhu>=30){cond='HANGAT';bb='radial-gradient(circle at 35% 35%,#fed7aa,#ea580c)';}
+  set('suhu-cond', cond);
+  const bulb=$('thermo-bulb'); if(bulb) bulb.style.background=bb;
+  pill('suhu-status', suhu, 35, 40);
+
+  set('kel-val', lemb); set('g-num', lemb);
+  const arc=$('g-arc'); if(arc) arc.style.strokeDashoffset=204-(lemb/100)*204;
+  const ndl=$('g-needle'); if(ndl) ndl.setAttribute('transform',`rotate(${-90+(lemb/100)*180},78,83)`);
+  for(let i=0;i<7;i++){
+    const drp=$('drp-'+i); if(!drp) continue;
+    const active=(lemb/100*7)>i;
+    drp.style.height=(active?11+i*2:6)+'px';
+    drp.style.opacity=active?'.8':'.2';
+    drp.style.background=lemb>90?'var(--red)':lemb>75?'var(--yellow)':'var(--blue)';
+  }
+  pill('kel-status', lemb, 80, 95);
+
+  const maxG=600, gPct=clamp(Math.round(gas/maxG*100),0,100);
+  set('gas-val', gas); set('gas-pct-lbl', gPct+'%');
+  const gbar=$('gbar-main');
+  if(gbar){
+    gbar.style.width=gPct+'%';
+    gbar.style.background=gas>=500?'linear-gradient(90deg,#e07b2a,#dc3545)':gas>=300?'linear-gradient(90deg,#c99a0a,#e07b2a)':'linear-gradient(90deg,#18a96a,#6f52d9)';
+  }
+  document.querySelectorAll('.gp').forEach((p,i)=>{
+    p.style.animationDuration=(Math.max(.3,1.4-gas/600)+(i%3)*.12)+'s';
+  });
+  pill('gas-status', gas, 300, 500);
+}
+
+
+function applyPatroli(total) {
+  const tot = parseInt(total)||0;
+  set('pat-total', tot); set('pat-ring-num', tot);
+  const ring=$('pat-ring');
+  if(ring) ring.style.strokeDashoffset=220-(tot/Math.max(tot,50))*220;
+}
+
+function pill(id, v, warnAt, critAt) {
+  const el=$(id); if(!el) return;
+  if(v==null){el.textContent='—';el.className='s-pill st-wait';return;}
+  let c='st-ok',t='NORMAL';
+  if(critAt!==undefined&&v>=critAt){c='st-crit';t='DANGER';}
+  else if(warnAt!==undefined&&v>=warnAt){c='st-warn';t='WARNING';}
+  el.textContent=t; el.className='s-pill '+c;
+}
+
+// ══ TABLE ══════════════════════════════════════════
+const tabApi = {
+  'water-level': API.waterLevel,
+  'water-flow':  API.waterFlow,
+  'lingkungan':  API.lingkungan,
+  'patroli':     API.patroli,
+};
+
+function swTab(tab, el) {
+  _activeTab = tab;
+  document.querySelectorAll('.iot-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  loadTable(tab);
+}
+
+async function loadTable(tab) {
+  const c=$('tbl-cont'); if(!c) return;
+  if(!espConnected){c.innerHTML='<div class="tbl-empty">Waiting for ESP…</div>';return;}
+  c.innerHTML='<div class="tbl-empty" style="color:var(--txt3)">Memuat data…</div>';
+  try {
+    const j = await (await fetch(tabApi[tab])).json();
+    if(!j.success||!j.data.length){c.innerHTML='<div class="tbl-empty">Belum ada data tersedia</div>';return;}
+    const rows=j.data, keys=Object.keys(rows[0]);
+    let h=`<table><thead><tr>${keys.map(k=>`<th>${k.replace(/_/g,' ')}</th>`).join('')}</tr></thead><tbody>`;
+    rows.forEach(r=>{
+      h+=`<tr>${keys.map(k=>{
+        const v=r[k];
+        if(k==='id') return `<td><span class="td-id">#${v}</span></td>`;
+        if(k.includes('_at')) return `<td style="color:var(--txt3);font-size:11px">${fmtDT(v)}</td>`;
+        return `<td>${v??'—'}</td>`;
+      }).join('')}</tr>`;
+    });
+    c.innerHTML=h+'</tbody></table>';
+  } catch(e){
+    c.innerHTML=`<div class="tbl-empty">Gagal memuat data</div>`;
+  }
+}
+
+// ══ LOGOUT ══════════════════════════════════════════
+function confirmLogout() {
+  // Show our styled modal instead of the ugly browser confirm()
+  const overlay = document.getElementById('logout-overlay');
+  const modal   = document.getElementById('logout-modal');
+  overlay.style.display = 'flex';
+  modal.style.display   = 'block';
+}
+function closeLogout() {
+  // Hide the modal when user clicks Cancel or the dark overlay
+  document.getElementById('logout-overlay').style.display = 'none';
+  document.getElementById('logout-modal').style.display   = 'none';
+}
+function doLogout() {
+  // User confirmed — clear session data from browser
+  localStorage.removeItem('isLoggedin');
+  localStorage.removeItem('user_id');
+  localStorage.removeItem('email');
+  // Redirect to logout success page (which then has a button to go back to login)
+  window.location.href = '../Dashboard/Logout_Success.html';
+}
+
+window._poll = setInterval(() => {
+    if (!$('wl-val')) { clearInterval(window._poll); return; }
+    fetchSummary();
+  }, 5000);  
+
+// ══ BOOT ════════════════════════════════════════════
+loadPage('iot');
+
+// ═══════════════════════════════════════════════════════════
+// DATA ENTRY
+// ═══════════════════════════════════════════════════════════
+function getDataEntryHTML(key,title,sub,icon){return`<div class="de-wrap">
+  <div class="de-header"><div><div class="de-title">${title}</div><div class="de-sub">${sub}</div></div><div class="de-date" id="de-dt-${key}">--</div></div>
+  <div class="de-card">
+    <div class="de-card-title"><span class="de-card-ico">${icon}</span> Input Form — ${title}</div>
+    <div class="de-grid">
+      <div class="de-field"><label class="de-label">DATE</label><input class="de-input" type="date" id="${key}-date"></div>
+      <div class="de-field"><label class="de-label">SHIFT</label>
+        <select class="de-input de-select" id="${key}-shift">
+          <option value="">— Select Shift —</option>
+          <option value="pagi">🌅 Morning  06:00–14:00</option>
+          <option value="siang">☀️ Afternoon  14:00–22:00</option>
+          <option value="malam">🌙 Night  22:00–06:00</option>
+        </select></div>
+      <div class="de-field"><label class="de-label">OPERATOR NAME</label><input class="de-input" type="text" id="${key}-op" placeholder="Operator name..."></div>
+      <div class="de-field"><label class="de-label">DATA TYPE</label><input class="de-input" type="text" id="${key}-type" placeholder="Data type..."></div>
+      <div class="de-field"><label class="de-label">VOLUME <span class="de-unit">(L)</span></label><input class="de-input" type="number" id="${key}-vol" placeholder="0" min="0" step="0.1"></div>
+      <div class="de-field"><label class="de-label">TARGET <span class="de-unit">(L)</span></label><input class="de-input" type="number" id="${key}-tgt" placeholder="0" min="0" step="0.1"></div>
+      <div class="de-field de-full"><label class="de-label">NOTES</label><textarea class="de-input de-textarea" id="${key}-notes" placeholder="Add notes here..."></textarea></div>
+    </div>
+    <div class="de-status-bar" id="${key}-sb" style="display:none"><span id="${key}-sm"></span></div>
+    <div class="de-actions">
+      <button class="de-btn de-btn-ghost" onclick="resetDE('${key}')">🔄 Reset</button>
+      <button class="de-btn de-btn-primary" onclick="submitDE('${key}')">💾 Save Data</button>
+    </div>
+  </div>
+  <div class="de-card" style="margin-top:16px">
+    <div class="de-card-title"><span class="de-card-ico">📊</span>Today's History<button class="de-refresh-btn" onclick="loadDEHist('${key}')">↻ Refresh</button></div>
+    <div id="${key}-hist"><div class="de-empty">No entries today</div></div>
+  </div>
+</div>`;}
+function initDataEntryForm(key){
+  const d=document.getElementById(key+'-date');if(d)d.value=new Date().toISOString().split('T')[0];
+  if(window._deClock)clearInterval(window._deClock);
+  window._deClock=setInterval(()=>{const el=document.getElementById('de-dt-'+key);if(!el){clearInterval(window._deClock);return;}el.textContent=new Date().toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});},1000);
+  loadDEHist(key);
+}
+async function submitDE(key){
+  const g=id=>document.getElementById(id)?.value;
+  const d={date:g(key+'-date'),shift:g(key+'-shift'),op:g(key+'-op'),type:g(key+'-type'),vol:g(key+'-vol'),tgt:g(key+'-tgt'),notes:g(key+'-notes')};
+  if(!d.date||!d.shift||!d.op||!d.type||!d.vol){showDESt(key,'error','❌ Please fill in all required fields!');return;}
+  showDESt(key,'loading','⏳ Saving...');
+  await new Promise(r=>setTimeout(r,500));
+  const h=JSON.parse(localStorage.getItem(key+'_h')||'[]');
+  h.unshift({...d,id:Date.now(),at:new Date().toLocaleTimeString('en-GB')});
+  localStorage.setItem(key+'_h',JSON.stringify(h.slice(0,50)));
+  showDESt(key,'success','✅ Data saved!');resetDE(key);loadDEHist(key);
+}
+function resetDE(key){
+  [key+'-shift',key+'-op',key+'-type',key+'-vol',key+'-tgt',key+'-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const d=document.getElementById(key+'-date');if(d)d.value=new Date().toISOString().split('T')[0];
+}
+function showDESt(key,type,msg){
+  const b=document.getElementById(key+'-sb'),m=document.getElementById(key+'-sm');
+  if(!b||!m)return;b.style.display='flex';b.className='de-status-bar de-status-'+type;m.textContent=msg;
+  if(type==='success')setTimeout(()=>{if(b)b.style.display='none';},4000);
+}
+function loadDEHist(key){
+  const c=document.getElementById(key+'-hist');if(!c)return;
+  const today=new Date().toISOString().split('T')[0];
+  const data=JSON.parse(localStorage.getItem(key+'_h')||'[]').filter(r=>r.date===today);
+  if(!data.length){c.innerHTML='<div class="de-empty">No entries today</div>';return;}
+  const sl={pagi:'🌅 Morning',siang:'☀️ Afternoon',malam:'🌙 Night'};
+  c.innerHTML=`<div class="de-table-wrap"><table class="de-table"><thead><tr><th>Shift</th><th>Operator</th><th>Type</th><th>Volume</th><th>Target</th><th>Achievement</th><th>Saved</th></tr></thead>
+  <tbody>${data.map(r=>{const p=r.tgt>0?Math.round(r.vol/r.tgt*100):0;const col=p>=100?'var(--green)':p>=75?'var(--yellow)':'var(--red)';
+  return`<tr><td>${sl[r.shift]||r.shift}</td><td>${r.op}</td><td>${r.type}</td><td>${r.vol} L</td><td>${r.tgt||'—'} L</td><td><span style="color:${col};font-weight:600">${p}%</span></td><td style="color:var(--txt3);font-size:11px">${r.at}</td></tr>`;}).join('')}</tbody></table></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHANGE PASSWORD
+// ═══════════════════════════════════════════════════════════
+function getChangePasswordHTML(){return`<div class="de-wrap">
+  <div class="de-header"><div><div class="de-title">Change Password</div><div class="de-sub">Update your account password securely</div></div></div>
+  <div class="de-card" style="max-width:480px">
+    <div class="de-card-title"><span class="de-card-ico">🔐</span> Change Password</div>
+    <div class="de-field"><label class="de-label">CURRENT PASSWORD</label>
+      <div class="cp-input-wrap"><input class="de-input" type="password" id="cp-old" placeholder="Enter current password..."><span class="cp-eye" onclick="cpTog('cp-old')">👁</span></div></div>
+    <div class="de-field" style="margin-top:14px"><label class="de-label">NEW PASSWORD</label>
+      <div class="cp-input-wrap"><input class="de-input" type="password" id="cp-new" placeholder="Min. 6 characters..." oninput="cpVal()"><span class="cp-eye" onclick="cpTog('cp-new')">👁</span></div></div>
+    <div class="de-field" style="margin-top:14px"><label class="de-label">CONFIRM NEW PASSWORD</label>
+      <div class="cp-input-wrap"><input class="de-input" type="password" id="cp-cf" placeholder="Repeat new password..." oninput="cpVal()"><span class="cp-eye" onclick="cpTog('cp-cf')">👁</span></div></div>
+    <div class="cp-rules"><div class="cp-rule" id="cpr-len">○ Minimum 6 characters</div><div class="cp-rule" id="cpr-mt">○ Passwords match</div></div>
+    <div class="de-status-bar" id="cp-sb" style="display:none"><span id="cp-sm"></span></div>
+    <div class="de-actions" style="margin-top:20px">
+      <button class="de-btn de-btn-ghost" onclick="cpRst()">🔄 Reset</button>
+      <button class="de-btn de-btn-primary" id="cp-btn" onclick="submitCP()">🔐 Change Password</button>
+    </div>
+  </div>
+</div>`;}
+function cpTog(id){const el=document.getElementById(id);if(el)el.type=el.type==='password'?'text':'password';}
+function cpRst(){['cp-old','cp-new','cp-cf'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.type='password';}});const b=document.getElementById('cp-sb');if(b)b.style.display='none';cpVal();}
+function cpVal(){
+  const np=document.getElementById('cp-new')?.value||'',cf=document.getElementById('cp-cf')?.value||'';
+  const lo=np.length>=6,mo=np===cf&&np.length>0;
+  const le=document.getElementById('cpr-len'),me=document.getElementById('cpr-mt');
+  if(le){le.textContent=(lo?'✅':'○')+' Minimum 6 characters';le.style.color=lo?'var(--green)':'var(--txt3)';}
+  if(me){me.textContent=(mo?'✅':'○')+' Passwords match';me.style.color=mo?'var(--green)':'var(--txt3)';}
+  return lo&&mo;
+}
+async function submitCP(){
+  if(!cpVal()){showCPSt('error','❌ Password must be 6+ chars and match!');return;}
+  const op=document.getElementById('cp-old')?.value,np=document.getElementById('cp-new')?.value;
+  if(!op){showCPSt('error','❌ Please enter your current password!');return;}
+  const uid=localStorage.getItem('user_id');if(!uid){showCPSt('error','❌ Session not found. Please log in again.');return;}
+  showCPSt('loading','⏳ Saving changes...');const btn=document.getElementById('cp-btn');if(btn)btn.disabled=true;
+  try{const res=await fetch('/api/auth/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid,old_password:op,new_password:np})});
+    const d=await res.json();if(d.success){showCPSt('success','✅ Password changed successfully!');cpRst();}
+    else showCPSt('error','❌ '+(d.message||'Failed'));}
+  catch{showCPSt('error','❌ Server connection failed');}
+  finally{if(btn)btn.disabled=false;}
+}
+function showCPSt(type,msg){const b=document.getElementById('cp-sb'),m=document.getElementById('cp-sm');
+  if(!b||!m)return;b.style.display='flex';b.className='de-status-bar de-status-'+type;m.textContent=msg;
+  if(type==='success')setTimeout(()=>{if(b)b.style.display='none';},5000);}
+
+// ═══════════════════════════════════════════════════════════
+// IoT DETAIL DRAWER
+// ═══════════════════════════════════════════════════════════
+const DAPI={
+  'water-level':{url:'/api/iot/water-level',label:'Water Level'},
+  'water-flow': {url:'/api/iot/water-flow', label:'Water Flow'},
+  'lingkungan': {url:'/api/iot/lingkungan', label:'Environment'},
+  'patroli':    {url:'/api/iot/patroli',    label:'Patrol'},
+};
+const DLABELS={s1:'Tank S1',s2:'Tank S2',p1:'Pressure 1',p2:'Pressure 2',rate:'Flow Rate',total:'Volume Total',t:'Temperature',h:'Humidity',raw:'Gas Level',stat:'Status'};
+const DUNITS ={s1:'%',s2:'%',p1:'bar',p2:'bar',rate:'L/min',total:'mL',t:'°C',h:'%RH',raw:'ppm'};
+function openDetail(tab){
+  document.getElementById('detail-title').textContent=(DAPI[tab]?.label||tab)+' — Detail Data';
+  document.getElementById('detail-tabs').innerHTML=`<button class="detail-tab active" onclick="swDTab('${tab}',this)">${DAPI[tab]?.label||tab}</button>`;
+  document.getElementById('detail-overlay').classList.add('show');
+  document.getElementById('detail-drawer').classList.add('show');
+  document.body.style.overflow='hidden';
+  loadDetailData(tab);
+}
+function closeDetail(){document.getElementById('detail-overlay')?.classList.remove('show');document.getElementById('detail-drawer')?.classList.remove('show');document.body.style.overflow='';}
+function swDTab(tab,el){document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');loadDetailData(tab);}
+async function loadDetailData(tab){
+  const body=document.getElementById('detail-body');
+  body.innerHTML='<div style="padding:40px;text-align:center;color:var(--txt3)">Loading…</div>';
+  try{
+    const j=await(await fetch(DAPI[tab].url)).json();
+    if(!j.success||!j.data?.length){body.innerHTML='<div style="padding:40px;text-align:center;color:var(--txt3)">No data available</div>';return;}
+    const rows=j.data,latest=rows[0],keys=Object.keys(latest);
+    const skip=['id','created_at','updated_at'];
+    const valKeys=keys.filter(k=>!skip.includes(k));
+    // Summary cards
+    let h=`<div class="detail-stat-grid">${valKeys.map(k=>`
+      <div class="detail-stat">
+        <div class="detail-stat-label">${(DLABELS[k]||k).toUpperCase()}</div>
+        <div class="detail-stat-value">${latest[k]??'—'}</div>
+        <div class="detail-stat-unit">${DUNITS[k]||''}</div>
+      </div>`).join('')}</div>`;
+    // Timestamp
+    h+=`<div class="detail-ts">🕐 Last updated: ${fmtDT(latest.created_at||latest.updated_at)}</div>`;
+    // Table
+    h+=`<div class="detail-tbl-title">📋 Recent Records (${rows.length})</div>
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg)">${keys.map(k=>`<th style="text-align:left;padding:9px 12px;font-size:9px;font-weight:700;color:var(--txt3);border-bottom:1px solid var(--border);text-transform:uppercase;white-space:nowrap;letter-spacing:1px">${DLABELS[k]||k.replace(/_/g,' ')}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r,ri)=>`<tr style="background:${ri%2===0?'var(--surface)':'var(--bg)'}">
+        ${keys.map(k=>{const v=r[k];
+          if(k==='id') return`<td style="padding:8px 12px"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--blue);background:#ebf2fd;padding:2px 7px;border-radius:5px;font-weight:600">#${v}</span></td>`;
+          if(k.includes('_at')) return`<td style="padding:8px 12px;color:var(--txt3);font-size:10px;font-family:'DM Mono',monospace;white-space:nowrap">${fmtDT(v)}</td>`;
+          if(k==='stat'){const s=v==='AMAN'||v==='SAFE'||v===0||v==='0';return`<td style="padding:8px 12px"><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;border:1px solid;${s?'background:#edfaf4;color:#0e7a4a;border-color:#8edcba':'background:#fef2f2;color:#b91c1c;border-color:#f0a0a0'}">${v}</span></td>`;}
+          return`<td style="padding:8px 12px;color:var(--txt2);font-family:'DM Mono',monospace;font-size:12px">${v??'—'}</td>`;
+        }).join('')}</tr>`).join('')}</tbody></table></div>`;
+    body.innerHTML=h;
+  }catch(e){body.innerHTML=`<div style="padding:40px;text-align:center;color:var(--red)">Failed to load: ${e.message}</div>`;}
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROJECT PAGES
+// ═══════════════════════════════════════════════════════════
+function getProjectHTML(type,title){return`<div class="proj-wrap">
+  <div class="proj-header">
+    <div><div class="proj-title">${title}</div><div class="proj-sub">Manage and track your projects</div></div>
+    <span class="proj-count-badge" id="pc-${type}">0 projects</span>
+  </div>
+  <input class="proj-search" id="ps-${type}" placeholder="🔍  Search projects..." oninput="renderPJ('${type}')">
+  <div class="proj-list" id="pl-${type}"></div>
+</div>
+<button class="proj-fab" onclick="openAPJ('${type}')">＋</button>
+<div class="proj-modal-overlay" id="pmo-${type}">
+  <div class="proj-modal">
+    <div class="proj-modal-head"><div class="proj-modal-title">📋 Add New Project</div><button class="proj-modal-close" onclick="closeAPJ('${type}')">✕</button></div>
+    <div class="proj-modal-body">
+      <div class="proj-modal-grid">
+        <div class="de-field proj-modal-full"><label class="de-label">PROJECT TITLE *</label><input class="de-input" id="pf-nm-${type}" type="text" placeholder="Enter project title..."></div>
+        <div class="de-field"><label class="de-label">START DATE</label><input class="de-input" id="pf-st-${type}" type="date"></div>
+        <div class="de-field"><label class="de-label">EXPECTED END</label><input class="de-input" id="pf-en-${type}" type="date"></div>
+        <div class="de-field proj-modal-full"><label class="de-label">MATERIALS USED</label><textarea class="de-input de-textarea" id="pf-mat-${type}" placeholder="e.g. Steel pipes, concrete..." style="min-height:70px"></textarea></div>
+        <div class="de-field proj-modal-full"><label class="de-label">TOOLS USED</label><textarea class="de-input de-textarea" id="pf-tl-${type}" placeholder="e.g. Drill, welding machine..." style="min-height:70px"></textarea></div>
+        <div class="de-field proj-modal-full"><label class="de-label">PROGRESS — <span id="pp-${type}" style="color:var(--blue);font-weight:700">0%</span></label>
+          <input class="proj-range" id="pr-${type}" type="range" min="0" max="100" value="0" oninput="document.getElementById('pp-${type}').textContent=this.value+'%'"></div>
+        <div class="de-field proj-modal-full"><label class="de-label">NOTES</label><textarea class="de-input de-textarea" id="pf-nt-${type}" placeholder="Additional notes..." style="min-height:60px"></textarea></div>
+      </div>
+      <div class="de-status-bar" id="psb-${type}" style="display:none"><span id="psm-${type}"></span></div>
+      <div class="de-actions" style="margin-top:18px">
+        <button class="de-btn de-btn-ghost" onclick="closeAPJ('${type}')">Cancel</button>
+        <button class="de-btn de-btn-primary" onclick="submitPJ('${type}')">💾 Save Project</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="proj-det-overlay" id="pdo-${type}" onclick="closePD('${type}')"></div>
+<div class="proj-det-drawer" id="pdd-${type}">
+  <div class="proj-det-head">
+    <div><div class="proj-det-name" id="pd-nm-${type}">—</div><div class="proj-det-date" id="pd-dt-${type}">—</div></div>
+    <button class="proj-modal-close" onclick="closePD('${type}')">✕</button>
+  </div>
+  <div class="proj-det-body" id="pd-bd-${type}"></div>
+</div>`;}
+function initProjectPage(t){const d=document.getElementById('pf-st-'+t);if(d)d.value=new Date().toISOString().split('T')[0];renderPJ(t);}
+const gPJ=t=>JSON.parse(localStorage.getItem('pj_'+t)||'[]');
+const sPJ=(t,l)=>localStorage.setItem('pj_'+t,JSON.stringify(l));
+function renderPJ(type){
+  const list=document.getElementById('pl-'+type),cnt=document.getElementById('pc-'+type);
+  const q=(document.getElementById('ps-'+type)?.value||'').toLowerCase();
+  if(!list)return;
+  let ps=gPJ(type);if(q)ps=ps.filter(p=>p.name.toLowerCase().includes(q));
+  if(cnt)cnt.textContent=ps.length+' project'+(ps.length!==1?'s':'');
+  if(!ps.length){list.innerHTML=`<div class="proj-empty"><div class="proj-empty-ico">📂</div>${q?'No projects match.':'No projects yet — click ＋ to add one!'}</div>`;return;}
+  const col={ongoing:'var(--blue)',recent:'var(--orange)',completed:'var(--green)'};
+  const lbl={ongoing:'ON GOING',recent:'RECENT',completed:'DONE'};
+  list.innerHTML=ps.map((p,i)=>`
+    <div class="proj-card" style="--acc:${col[type]||'var(--blue)'}" onclick="openPD('${type}',${i})">
+      <div class="proj-card-icon">📋</div>
+      <div class="proj-card-body">
+        <div class="proj-card-name">${p.name}</div>
+        <div class="proj-card-meta"><span>📅 ${p.start||'—'}</span><span>🏁 ${p.end||'—'}</span></div>
+        <div class="proj-progress-track"><div class="proj-progress-fill" style="width:${p.progress||0}%"></div></div>
+        <div class="proj-progress-label"><span>Progress</span><span>${p.progress||0}%</span></div>
+      </div>
+      <span class="proj-status ${type}">${lbl[type]}</span>
+      <span class="proj-card-arrow">›</span>
+    </div>`).join('');
+}
+function openAPJ(t){document.getElementById('pmo-'+t).classList.add('show');}
+function closeAPJ(t){
+  document.getElementById('pmo-'+t).classList.remove('show');
+  ['pf-nm-','pf-st-','pf-en-','pf-mat-','pf-tl-','pf-nt-'].forEach(f=>{const el=document.getElementById(f+t);if(el)el.value='';});
+  const r=document.getElementById('pr-'+t);if(r)r.value=0;
+  const l=document.getElementById('pp-'+t);if(l)l.textContent='0%';
+  const b=document.getElementById('psb-'+t);if(b)b.style.display='none';
+}
+function submitPJ(t){
+  const name=document.getElementById('pf-nm-'+t)?.value.trim();
+  if(!name){showPSt(t,'error','❌ Project title is required!');return;}
+  const p={name,start:document.getElementById('pf-st-'+t)?.value,end:document.getElementById('pf-en-'+t)?.value,
+    materials:document.getElementById('pf-mat-'+t)?.value.trim(),tools:document.getElementById('pf-tl-'+t)?.value.trim(),
+    progress:+(document.getElementById('pr-'+t)?.value||0),notes:document.getElementById('pf-nt-'+t)?.value.trim(),
+    created_at:new Date().toISOString()};
+  const l=gPJ(t);l.unshift(p);sPJ(t,l);
+  showPSt(t,'success','✅ Project saved!');setTimeout(()=>{closeAPJ(t);renderPJ(t);},900);
+}
+function showPSt(t,k,m){const b=document.getElementById('psb-'+t),el=document.getElementById('psm-'+t);if(!b||!el)return;b.style.display='flex';b.className='de-status-bar de-status-'+k;el.textContent=m;}
+function openPD(type,idx){
+  const p=gPJ(type)[idx];if(!p)return;
+  document.getElementById('pd-nm-'+type).textContent=p.name;
+  document.getElementById('pd-dt-'+type).textContent='📅 '+(p.start||'—')+' → 🏁 '+(p.end||'—');
+  document.getElementById('pd-bd-'+type).innerHTML=`
+    <div><div class="proj-info-lbl">PROGRESS</div><div class="proj-big-pct">${p.progress}%</div>
+      <div class="proj-big-track"><div class="proj-big-fill" style="width:${p.progress}%"></div></div></div>
+    <div class="proj-info-grid">
+      <div><div class="proj-info-lbl">START</div><div class="proj-info-val">${p.start||'—'}</div></div>
+      <div><div class="proj-info-lbl">EXPECTED END</div><div class="proj-info-val">${p.end||'—'}</div></div>
+    </div>
+    <div><div class="proj-info-lbl">MATERIALS</div><div class="proj-info-val">${p.materials||'—'}</div></div>
+    <div><div class="proj-info-lbl">TOOLS</div><div class="proj-info-val">${p.tools||'—'}</div></div>
+    ${p.notes?`<div><div class="proj-info-lbl">NOTES</div><div class="proj-info-val">${p.notes}</div></div>`:''}
+    <div><div class="proj-info-lbl">CREATED</div><div class="proj-info-val" style="font-family:'DM Mono',monospace;font-size:11px">${new Date(p.created_at).toLocaleString('en-GB')}</div></div>
+    <button class="proj-del-btn" onclick="delPJ('${type}',${idx})">🗑️ Delete Project</button>`;
+  document.getElementById('pdo-'+type).classList.add('show');
+  document.getElementById('pdd-'+type).classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closePD(t){document.getElementById('pdo-'+t)?.classList.remove('show');document.getElementById('pdd-'+t)?.classList.remove('show');document.body.style.overflow='';}
+function delPJ(t,i){if(!confirm('Delete this project? This cannot be undone.'))return;const l=gPJ(t);l.splice(i,1);sPJ(t,l);closePD(t);renderPJ(t);}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeDetail();closeSensorModal();['ongoing','recent','completed'].forEach(t=>{closeAPJ(t);closePD(t);});}
+});
+
+// ═══════════════════════════════════════════════════════════
+// IoT DETAIL DRAWER HTML
+// ═══════════════════════════════════════════════════════════
+// ══ WATER LEVEL SETTING ══════════════════════════════
+function getWaterLevelSettingHTML() {
+  return `<div class="de-wrap">
+  <div class="de-header">
+    <div><div class="de-title">Water Level Setting</div><div class="de-sub">Configure water level thresholds and alert limits</div></div>
+    <div class="de-date" id="wls-datetime">--</div>
+  </div>
+
+  <!-- Current readings -->
+  <div class="de-card" style="margin-bottom:16px">
+    <div class="de-card-title"><span class="de-card-ico">📡</span> Current Readings <button class="de-refresh-btn" onclick="refreshWLSReadings()">↻ Refresh</button></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px" id="wls-readings">
+      <div class="wls-stat"><div class="wls-stat-lbl">TANK S1</div><div class="wls-stat-val" id="wls-s1">—</div><div class="wls-stat-unit">%</div></div>
+      <div class="wls-stat"><div class="wls-stat-lbl">TANK S2</div><div class="wls-stat-val" id="wls-s2">—</div><div class="wls-stat-unit">%</div></div>
+      <div class="wls-stat"><div class="wls-stat-lbl">PRESSURE 1</div><div class="wls-stat-val" id="wls-p1">—</div><div class="wls-stat-unit">bar</div></div>
+      <div class="wls-stat"><div class="wls-stat-lbl">PRESSURE 2</div><div class="wls-stat-val" id="wls-p2">—</div><div class="wls-stat-unit">bar</div></div>
+    </div>
+  </div>
+
+  <!-- Threshold settings -->
+  <div class="de-card" style="margin-bottom:16px">
+    <div class="de-card-title"><span class="de-card-ico">⚠️</span> Alert Thresholds</div>
+    <div class="de-grid">
+      <div class="de-field">
+        <label class="de-label">WARNING LEVEL <span class="de-unit">(%)</span></label>
+        <input class="de-input" type="number" id="wls-warn" min="0" max="100" step="1" placeholder="e.g. 70">
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">Show WARNING pill above this value</div>
+      </div>
+      <div class="de-field">
+        <label class="de-label">DANGER LEVEL <span class="de-unit">(%)</span></label>
+        <input class="de-input" type="number" id="wls-crit" min="0" max="100" step="1" placeholder="e.g. 90">
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">Show DANGER pill above this value</div>
+      </div>
+      <div class="de-field">
+        <label class="de-label">MIN SAFE LEVEL <span class="de-unit">(%)</span></label>
+        <input class="de-input" type="number" id="wls-min" min="0" max="100" step="1" placeholder="e.g. 10">
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">Alert when tank drops below this</div>
+      </div>
+      <div class="de-field">
+        <label class="de-label">MAX CAPACITY <span class="de-unit">(%)</span></label>
+        <input class="de-input" type="number" id="wls-max" min="0" max="100" step="1" placeholder="e.g. 100">
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">Tank full at this percentage</div>
+      </div>
+    </div>
+
+    <!-- Visual threshold preview -->
+    <div style="margin:4px 0 20px">
+      <div class="de-label" style="margin-bottom:8px">THRESHOLD PREVIEW</div>
+      <div style="position:relative;height:28px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--bg)">
+        <div id="wls-safe-zone"  style="position:absolute;left:0;top:0;bottom:0;background:rgba(24,169,106,.18);transition:width .4s"></div>
+        <div id="wls-warn-zone"  style="position:absolute;top:0;bottom:0;background:rgba(201,154,10,.22);transition:left .4s,width .4s"></div>
+        <div id="wls-crit-zone"  style="position:absolute;top:0;bottom:0;right:0;background:rgba(220,53,69,.22);transition:left .4s"></div>
+        <div id="wls-warn-line"  style="position:absolute;top:0;bottom:0;width:2px;background:var(--yellow);transition:left .4s"></div>
+        <div id="wls-crit-line"  style="position:absolute;top:0;bottom:0;width:2px;background:var(--red);transition:left .4s"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 8px;pointer-events:none">
+          <span style="font-size:9px;font-weight:600;color:var(--green)">SAFE</span>
+          <span style="font-size:9px;font-weight:600;color:var(--yellow)" id="wls-warn-lbl">WARN</span>
+          <span style="font-size:9px;font-weight:600;color:var(--red)" id="wls-crit-lbl">DANGER</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;padding:0 2px">
+        <span style="font-size:9px;color:var(--txt3)">0%</span>
+        <span style="font-size:9px;color:var(--txt3)">100%</span>
+      </div>
+    </div>
+
+    <div class="de-status-bar" id="wls-sb" style="display:none"><span id="wls-sm"></span></div>
+    <div class="de-actions">
+      <button class="de-btn de-btn-ghost" onclick="resetWLS()">🔄 Reset to Default</button>
+      <button class="de-btn de-btn-primary" onclick="saveWLS()">💾 Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Pressure settings -->
+  <div class="de-card">
+    <div class="de-card-title"><span class="de-card-ico">🔧</span> Pressure Limits</div>
+    <div class="de-grid">
+      <div class="de-field">
+        <label class="de-label">PRESSURE WARNING <span class="de-unit">(bar)</span></label>
+        <input class="de-input" type="number" id="wls-p-warn" min="0" step="0.1" placeholder="e.g. 0.8">
+      </div>
+      <div class="de-field">
+        <label class="de-label">PRESSURE MAX <span class="de-unit">(bar)</span></label>
+        <input class="de-input" type="number" id="wls-p-max" min="0" step="0.1" placeholder="e.g. 1.2">
+      </div>
+      <div class="de-field de-full">
+        <label class="de-label">NOTES</label>
+        <textarea class="de-input de-textarea" id="wls-notes" placeholder="Notes about this configuration..."></textarea>
+      </div>
+    </div>
+    <div class="de-actions">
+      <button class="de-btn de-btn-primary" onclick="saveWLS()">💾 Save All Settings</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function initWaterLevelSetting() {
+  // Clock
+  if (window._wlsClock) clearInterval(window._wlsClock);
+  window._wlsClock = setInterval(() => {
+    const el = document.getElementById('wls-datetime');
+    if (!el) { clearInterval(window._wlsClock); return; }
+    el.textContent = new Date().toLocaleString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }, 1000);
+
+  // Load saved settings
+  const saved = JSON.parse(localStorage.getItem('wls_settings') || '{}');
+  const defaults = { warn:70, crit:90, min:10, max:100, pWarn:0.8, pMax:1.2, notes:'' };
+  const cfg = { ...defaults, ...saved };
+
+  document.getElementById('wls-warn').value  = cfg.warn;
+  document.getElementById('wls-crit').value  = cfg.crit;
+  document.getElementById('wls-min').value   = cfg.min;
+  document.getElementById('wls-max').value   = cfg.max;
+  document.getElementById('wls-p-warn').value = cfg.pWarn;
+  document.getElementById('wls-p-max').value  = cfg.pMax;
+  document.getElementById('wls-notes').value  = cfg.notes;
+
+  // Live preview on input
+  ['wls-warn','wls-crit'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateWLSPreview);
+  });
+  updateWLSPreview();
+
+  // Load current readings
+  refreshWLSReadings();
+}
+
+function updateWLSPreview() {
+  const warn = +(document.getElementById('wls-warn')?.value || 70);
+  const crit = +(document.getElementById('wls-crit')?.value || 90);
+  const wPct = Math.min(warn, 100);
+  const cPct = Math.min(crit, 100);
+
+  const safeZ  = document.getElementById('wls-safe-zone');
+  const warnZ  = document.getElementById('wls-warn-zone');
+  const critZ  = document.getElementById('wls-crit-zone');
+  const warnL  = document.getElementById('wls-warn-line');
+  const critL  = document.getElementById('wls-crit-line');
+  const warnLbl = document.getElementById('wls-warn-lbl');
+  const critLbl = document.getElementById('wls-crit-lbl');
+
+  if (safeZ) safeZ.style.width = wPct + '%';
+  if (warnZ) { warnZ.style.left = wPct + '%'; warnZ.style.width = Math.max(0, cPct - wPct) + '%'; }
+  if (critZ) critZ.style.left = cPct + '%';
+  if (warnL) warnL.style.left = wPct + '%';
+  if (critL) critL.style.left = cPct + '%';
+  if (warnLbl) warnLbl.style.left = wPct + '%';
+  if (critLbl) critLbl.style.left = cPct + '%';
+}
+
+function saveWLS() {
+  const warn  = +document.getElementById('wls-warn')?.value;
+  const crit  = +document.getElementById('wls-crit')?.value;
+  if (!warn || !crit) { showWLSSt('error', '❌ Please fill in Warning and Danger levels!'); return; }
+  if (warn >= crit)   { showWLSSt('error', '❌ Warning level must be lower than Danger level!'); return; }
+
+  const cfg = {
+    warn, crit,
+    min:   +document.getElementById('wls-min')?.value  || 10,
+    max:   +document.getElementById('wls-max')?.value  || 100,
+    pWarn: +document.getElementById('wls-p-warn')?.value || 0.8,
+    pMax:  +document.getElementById('wls-p-max')?.value  || 1.2,
+    notes: document.getElementById('wls-notes')?.value || '',
+    savedAt: new Date().toISOString(),
+  };
+  localStorage.setItem('wls_settings', JSON.stringify(cfg));
+  showWLSSt('success', '✅ Settings saved successfully!');
+  updateWLSPreview();
+}
+
+function resetWLS() {
+  if (!confirm('Reset all settings to default values?')) return;
+  localStorage.removeItem('wls_settings');
+  initWaterLevelSetting();
+  showWLSSt('success', '✅ Reset to default values.');
+}
+
+function showWLSSt(type, msg) {
+  const b = document.getElementById('wls-sb'), m = document.getElementById('wls-sm');
+  if (!b || !m) return;
+  b.style.display = 'flex'; b.className = 'de-status-bar de-status-' + type; m.textContent = msg;
+  if (type === 'success') setTimeout(() => { if (b) b.style.display = 'none'; }, 4000);
+}
+
+async function refreshWLSReadings() {
+  try {
+    const j = await (await fetch('/api/iot/water-level')).json();
+    if (j.success && j.data?.length) {
+      const d = j.data[0];
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
+      set('wls-s1', d.s1); set('wls-s2', d.s2); set('wls-p1', d.p1); set('wls-p2', d.p2);
+    }
+  } catch { /* silent fail - ESP may not be connected */ }
+}
+
+function initReportingForm() {
+  const form = document.getElementById("reportForm");
+  const statusDiv = document.getElementById("report-status");
+
+  if (!form) return;
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const data = {
+      nama: document.getElementById("r-nama").value,
+      shift: document.getElementById("r-shift").value,
+      kategori: document.getElementById("r-kategori").value,
+      prioritas: document.getElementById("r-prioritas").value,
+      deskripsi: document.getElementById("r-deskripsi").value,
+      tanggal: new Date().toISOString()
+    };
+
+    console.log("DATA REPORT:", data);
+
+    statusDiv.innerHTML = `
+      <div class="de-status-bar de-status-loading">
+        ⏳ Mengirim laporan...
+      </div>
+    `;
+
+    setTimeout(() => {
+      statusDiv.innerHTML = `
+        <div class="de-status-bar de-status-success">
+          ✅ Laporan berhasil dikirim!
+        </div>
+      `;
+      form.reset();
+    }, 1000);
+  });
+}
+
+// ══ REPORTING HELPERS ═════════════════════════════════════════
+function submitReport() {
+  const g = id => document.getElementById(id)?.value?.trim();
+  const title = g('r-title'), nama = g('r-nama'), desc = g('r-deskripsi');
+  if (!title || !nama || !desc) { showRpSt('error', '❌ Please fill in Title, Reporter Name, and Description!'); return; }
+  showRpSt('loading', '⏳ Submitting report...');
+  setTimeout(() => {
+    const hist = JSON.parse(localStorage.getItem('report_history') || '[]');
+    hist.unshift({ id:Date.now(), title, nama,
+      shift:g('r-shift'), kategori:g('r-kategori'), prioritas:g('r-prioritas'),
+      lokasi:g('r-lokasi')||'—', deskripsi:desc, aksi:g('r-aksi')||'—',
+      submitted_at:new Date().toISOString() });
+    localStorage.setItem('report_history', JSON.stringify(hist.slice(0, 100)));
+    showRpSt('success', '✅ Report submitted successfully!');
+    resetReport(); loadReportHistory();
+  }, 600);
+}
+function resetReport() {
+  ['r-title','r-nama','r-lokasi','r-deskripsi','r-aksi'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['r-shift','r-kategori','r-prioritas'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.selectedIndex = 0;
+  });
+}
+function showRpSt(type, msg) {
+  const b = document.getElementById('rp-sb'), m = document.getElementById('rp-sm');
+  if (!b || !m) return;
+  b.style.display = 'flex'; b.className = 'de-status-bar de-status-' + type; m.textContent = msg;
+  if (type === 'success') setTimeout(() => { if (b) b.style.display = 'none'; }, 4000);
+}
+function loadReportHistory() {
+  const c = document.getElementById('rp-history'); if (!c) return;
+  const hist = JSON.parse(localStorage.getItem('report_history') || '[]');
+  if (!hist.length) { c.innerHTML = '<div class="de-empty">No reports submitted yet</div>'; return; }
+  const priColor = {low:'var(--green)', medium:'var(--yellow)', high:'var(--red)'};
+  const priLabel = {low:'LOW', medium:'MEDIUM', high:'HIGH'};
+  const catLabel = {teknis:'Technical', operasional:'Operational', keamanan:'Security', lingkungan:'Environmental', lainnya:'Other'};
+  const shiftLabel = {pagi:'🌅 Morning', siang:'☀️ Afternoon', malam:'🌙 Night'};
+  c.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px">' +
+    hist.map(r => `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;border-left:3px solid ${priColor[r.prioritas]||'var(--blue)'}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--txt)">${r.title}</div>
+            <div style="font-size:11px;color:var(--txt3);margin-top:2px">👤 ${r.nama} • ${shiftLabel[r.shift]||r.shift||'—'} • 📍 ${r.lokasi}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+            <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;color:${priColor[r.prioritas]||'var(--blue)'};border:1px solid ${priColor[r.prioritas]||'var(--blue)'}44">${priLabel[r.prioritas]||r.prioritas}</span>
+            <span style="font-size:9px;color:var(--txt3);font-family:'DM Mono',monospace">${new Date(r.submitted_at).toLocaleString('en-GB')}</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--txt2);margin-bottom:6px;line-height:1.5">${r.deskripsi}</div>
+        ${r.aksi && r.aksi !== '—' ? `<div style="font-size:11px;color:var(--txt3);padding:6px 10px;background:var(--surface);border-radius:6px;border:1px solid var(--border)">✅ Action: ${r.aksi}</div>` : ''}
+        <div style="margin-top:6px"><span style="font-size:9px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:2px 8px;color:var(--txt3)">${catLabel[r.kategori]||r.kategori}</span></div>
+      </div>`).join('') + '</div>';
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// SENSOR MANAGER — Add / Edit / Delete sensors dynamically
+// Data tersimpan di localStorage('tank_sensors')
+// Dashboard membaca otomatis tanpa ubah kode
+// ═══════════════════════════════════════════════════════════
+
+const SENSOR_COL_NAMES = ['Biru','Ungu','Hijau','Oranye','Kuning','Merah'];
+
+function getTankDimensionHTML() {
+  return `<div class="de-wrap">
+  <div class="de-header">
+    <div>
+      <div class="de-title">Change Containers Volume</div>
+      <div class="de-sub">Add, edit, or delete sensors — the dashboard automatically updates.</div>
+    </div>
+    <div class="de-date" id="tds-dt">--</div>
+  </div>
+
+  <!-- SENSOR LIST -->
+  <div class="de-card" style="margin-bottom:16px">
+    <div class="de-card-title" style="justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px"><span class="de-card-ico">📡</span> Daftar Sensor Aktif</div>
+      <button class="de-btn de-btn-primary" style="padding:6px 16px;font-size:12px" onclick="openAddSensor()">＋ Tambah Sensor</button>
+    </div>
+    <div id="sensor-list-wrap"></div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="de-status-bar" id="tds-sb" style="display:none"><span id="tds-sm"></span></div>
+
+  <!-- ADD / EDIT MODAL -->
+  <div id="sensor-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center">
+    <div style="background:var(--surface);border-radius:16px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.22)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1">
+        <div style="font-size:15px;font-weight:700;color:var(--txt)" id="sensor-modal-title">Tambah Sensor Baru</div>
+        <button onclick="closeSensorModal()" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;color:var(--txt2);display:grid;place-items:center">✕</button>
+      </div>
+      <div style="padding:20px 22px 22px">
+
+        <!-- Preview mini tank -->
+        <div style="display:flex;justify-content:center;margin-bottom:20px">
+          <div style="text-align:center">
+            <div id="modal-tank-preview" style="width:56px;height:80px;border:2px solid var(--blue);border-radius:4px 4px 8px 8px;position:relative;overflow:hidden;background:var(--bg);margin:0 auto 6px">
+              <div id="modal-tank-water" style="position:absolute;bottom:0;left:0;right:0;height:50%;background:linear-gradient(180deg,#bfdffa,#3b9de8);transition:height .5s">
+                <div style="position:absolute;top:-3px;left:0;right:0;height:5px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);border-radius:50%;animation:wsurf 3s ease-in-out infinite"></div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--txt3)" id="modal-tank-vol-label">1.000 L</div>
+          </div>
+        </div>
+
+        <div class="de-grid">
+          <div class="de-field de-full">
+            <label class="de-label">NAMA SENSOR / KOLAM *</label>
+            <input class="de-input" type="text" id="sf-name" placeholder="Contoh: Kolam Utama, Tangki A...">
+          </div>
+          <div class="de-field">
+            <label class="de-label">KUNCI DATA API *</label>
+            <input class="de-input" type="text" id="sf-key" placeholder="s1, s2, s3 ...">
+            <div style="font-size:10px;color:var(--txt3);margin-top:3px">Sesuaikan dengan field dari ESP/API</div>
+          </div>
+          <div class="de-field">
+            <label class="de-label">LOKASI</label>
+            <input class="de-input" type="text" id="sf-loc" placeholder="Lantai 1, Area A...">
+          </div>
+          <div class="de-field">
+            <label class="de-label" style="color:var(--blue)">PANJANG <span class="de-unit">(m)</span></label>
+            <input class="de-input" type="number" id="sf-p" min="0.1" step="0.1" value="1" oninput="previewModalTank()">
+          </div>
+          <div class="de-field">
+            <label class="de-label" style="color:var(--green)">LEBAR <span class="de-unit">(m)</span></label>
+            <input class="de-input" type="number" id="sf-l" min="0.1" step="0.1" value="1" oninput="previewModalTank()">
+          </div>
+          <div class="de-field">
+            <label class="de-label" style="color:var(--orange)">TINGGI <span class="de-unit">(m)</span></label>
+            <input class="de-input" type="number" id="sf-t" min="0.1" step="0.1" value="1" oninput="previewModalTank()">
+          </div>
+          <div class="de-field de-full">
+            <label class="de-label">CATATAN</label>
+            <textarea class="de-input de-textarea" id="sf-note" placeholder="Keterangan tambahan..." style="min-height:60px"></textarea>
+          </div>
+        </div>
+
+        <!-- Volume preview in modal -->
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+          <div><div style="font-size:9px;color:var(--txt3)">Volume</div><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--blue)" id="modal-m3">— m³</div></div>
+          <div><div style="font-size:9px;color:var(--txt3)">Kapasitas</div><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--green)" id="modal-liter">— L</div></div>
+          <div><div style="font-size:9px;color:var(--txt3)">Dimensi</div><div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--orange)" id="modal-dim">—</div></div>
+        </div>
+
+        <div class="de-actions">
+          <button class="de-btn de-btn-ghost" onclick="closeSensorModal()">Batal</button>
+          <button class="de-btn de-btn-primary" onclick="saveSensor()">💾 Simpan Sensor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function initTankDimensionSetting() {
+  if (window._tdsClock) clearInterval(window._tdsClock);
+  window._tdsClock = setInterval(() => {
+    const el = document.getElementById('tds-dt');
+    if (!el) { clearInterval(window._tdsClock); return; }
+    el.textContent = new Date().toLocaleString('id-ID');
+  }, 1000);
+  renderSensorList();
+}
+
+// ── Render sensor list in settings page ──────────────────
+function renderSensorList() {
+  const wrap = document.getElementById('sensor-list-wrap');
+  if (!wrap) return;
+  const sensors = getSensors();
+  if (!sensors.length) {
+    wrap.innerHTML = '<div class="de-empty">Belum ada sensor. Klik "+ Tambah Sensor"</div>';
+    return;
+  }
+  wrap.innerHTML = sensors.map((s, i) => {
+    const col = SENSOR_COLORS[i % SENSOR_COLORS.length];
+    const liter = Math.round(+(s.panjang||1) * +(s.lebar||1) * +(s.tinggi||1) * 1000);
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg);border-left:4px solid ${col.label}">
+      <!-- mini tank icon -->
+      <div style="width:32px;height:44px;border:1.5px solid ${col.label};border-radius:3px 3px 5px 5px;position:relative;overflow:hidden;flex-shrink:0;background:var(--surface)">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:55%;background:${col.water}"></div>
+      </div>
+      <!-- info -->
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--txt)">${s.name}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px">
+          <span style="font-size:10px;color:var(--txt3)">🔑 Key: <strong style="color:${col.label}">${s.key}</strong></span>
+          <span style="font-size:10px;color:var(--txt3)">📐 ${s.panjang}m × ${s.lebar}m × ${s.tinggi}m</span>
+          <span style="font-size:10px;color:var(--txt3)">💧 ${liter.toLocaleString('id-ID')} L</span>
+          ${s.loc ? `<span style="font-size:10px;color:var(--txt3)">📍 ${s.loc}</span>` : ''}
+        </div>
+        ${s.note ? `<div style="font-size:10px;color:var(--txt3);margin-top:2px;font-style:italic">${s.note}</div>` : ''}
+      </div>
+      <!-- actions -->
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="openEditSensor(${i})" style="padding:5px 10px;background:#ebf2fd;border:1px solid #c3d9fa;border-radius:7px;color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✏️ Edit</button>
+        ${sensors.length > 1
+          ? `<button onclick="deleteSensor(${i})" style="padding:5px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">🗑</button>`
+          : `<button disabled style="padding:5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--txt3);font-size:11px;cursor:not-allowed;font-family:inherit" title="Minimal 1 sensor">🗑</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Modal helpers ─────────────────────────────────────────
+let _editIdx = -1;
+
+function openAddSensor() {
+  _editIdx = -1;
+  document.getElementById('sensor-modal-title').textContent = '➕ Tambah Sensor Baru';
+  ['sf-name','sf-key','sf-loc','sf-note'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('sf-p').value = 1;
+  document.getElementById('sf-l').value = 1;
+  document.getElementById('sf-t').value = 1;
+  // suggest next key
+  const sensors = getSensors();
+  document.getElementById('sf-key').value = 's' + (sensors.length + 1);
+  document.getElementById('sf-name').value = 'Sensor ' + (sensors.length + 1);
+  previewModalTank();
+  const ov = document.getElementById('sensor-modal-overlay');
+  ov.style.display = 'flex';
+}
+
+function openEditSensor(idx) {
+  _editIdx = idx;
+  const s = getSensors()[idx];
+  if (!s) return;
+  document.getElementById('sensor-modal-title').textContent = '✏️ Edit Sensor: ' + s.name;
+  document.getElementById('sf-name').value = s.name;
+  document.getElementById('sf-key').value  = s.key;
+  document.getElementById('sf-loc').value  = s.loc  || '';
+  document.getElementById('sf-note').value = s.note || '';
+  document.getElementById('sf-p').value = s.panjang || 1;
+  document.getElementById('sf-l').value = s.lebar   || 1;
+  document.getElementById('sf-t').value = s.tinggi  || 1;
+  previewModalTank();
+  document.getElementById('sensor-modal-overlay').style.display = 'flex';
+}
+
+function closeSensorModal() {
+  document.getElementById('sensor-modal-overlay').style.display = 'none';
+}
+
+function previewModalTank() {
+  const p = +(document.getElementById('sf-p')?.value) || 0;
+  const l = +(document.getElementById('sf-l')?.value) || 0;
+  const t = +(document.getElementById('sf-t')?.value) || 0;
+  const m3    = +(p * l * t).toFixed(3);
+  const liter = Math.round(m3 * 1000);
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('modal-m3',    m3 + ' m³');
+  setEl('modal-liter', liter.toLocaleString('id-ID') + ' L');
+  setEl('modal-dim',   p + '×' + l + '×' + t + 'm');
+  setEl('modal-tank-vol-label', liter.toLocaleString('id-ID') + ' L');
+  // scale preview tank height
+  const tw = document.getElementById('modal-tank-water');
+  if (tw) tw.style.height = Math.max(20, Math.min(90, t * 40)) + '%';
+}
+
+function saveSensor() {
+  const name = document.getElementById('sf-name')?.value.trim();
+  const key  = document.getElementById('sf-key')?.value.trim();
+  const p    = +(document.getElementById('sf-p')?.value);
+  const l    = +(document.getElementById('sf-l')?.value);
+  const t    = +(document.getElementById('sf-t')?.value);
+
+  if (!name) { showTDSSt('error', '❌ Nama sensor wajib diisi!'); return; }
+  if (!key)  { showTDSSt('error', '❌ Kunci data API wajib diisi!'); return; }
+  if (!p || !l || !t || p<=0 || l<=0 || t<=0) { showTDSSt('error', '❌ Dimensi harus lebih dari 0!'); return; }
+
+  const sensors = getSensors();
+
+  // Check duplicate key (allow same key on edit)
+  const dupIdx = sensors.findIndex(s => s.key === key);
+  if (dupIdx !== -1 && dupIdx !== _editIdx) {
+    showTDSSt('error', `❌ Kunci "${key}" sudah dipakai sensor lain!`); return;
+  }
+
+  const sensorObj = {
+    id:      _editIdx >= 0 ? sensors[_editIdx].id : 'sensor_' + Date.now(),
+    name, key, panjang: p, lebar: l, tinggi: t,
+    loc:  document.getElementById('sf-loc')?.value.trim()  || '',
+    note: document.getElementById('sf-note')?.value.trim() || '',
+  };
+
+  if (_editIdx >= 0) {
+    sensors[_editIdx] = sensorObj;
+  } else {
+    sensors.push(sensorObj);
+  }
+
+  localStorage.setItem('tank_sensors', JSON.stringify(sensors));
+  closeSensorModal();
+  renderSensorList();
+  const liter = Math.round(p * l * t * 1000).toLocaleString('id-ID');
+  showTDSSt('success', _editIdx >= 0
+    ? `✅ Sensor "${name}" diperbarui — ${liter} L`
+    : `✅ Sensor "${name}" ditambahkan! Wadah baru muncul di dashboard.`);
+}
+
+function deleteSensor(idx) {
+  const sensors = getSensors();
+  if (sensors.length <= 1) return;
+  if (!confirm(`Hapus sensor "${sensors[idx].name}"? Wadahnya akan hilang dari dashboard.`)) return;
+  sensors.splice(idx, 1);
+  localStorage.setItem('tank_sensors', JSON.stringify(sensors));
+  renderSensorList();
+  showTDSSt('success', '✅ Sensor dihapus. Dashboard otomatis diperbarui.');
+}
+
+function showTDSSt(type, msg) {
+  const b = document.getElementById('tds-sb'), m = document.getElementById('tds-sm');
+  if (!b || !m) return;
+  b.style.display = 'flex'; b.className = 'de-status-bar de-status-' + type; m.textContent = msg;
+  if (type !== 'error') setTimeout(() => { if (b) b.style.display = 'none'; }, 4000);
+}
+
+</script>
+
+<!-- ═══ IoT DETAIL DRAWER ═══ -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+<div class="detail-drawer" id="detail-drawer">
+  <div class="detail-header">
+    <div class="detail-title" id="detail-title">Detail Data</div>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-tabs" id="detail-tabs"></div>
+  <div class="detail-body" id="detail-body">
+    <div style="padding:48px;text-align:center;color:var(--txt3);font-size:13px">Click "Detail ↗" on any sensor card to view data</div>
+  </div>
+</div>
+
+<!-- ═══ LOGOUT MODAL ═══ -->
+<div id="logout-overlay" onclick="closeLogout()" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.45); z-index:9999;
+  align-items:center; justify-content:center;">
+</div>
+<div id="logout-modal" style="
+  display:none; position:fixed;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:32px 28px; width:320px;
+  z-index:10000; box-shadow:0 20px 60px rgba(0,0,0,.2);
+  text-align:center;">
+  <div style="font-size:36px; margin-bottom:12px">🚪</div>
+  <div style="font-size:16px; font-weight:700; color:var(--txt); margin-bottom:8px">Logout</div>
+  <div style="font-size:13px; color:var(--txt2); margin-bottom:24px">Are you sure you want to logout?</div>
+  <div style="display:flex; gap:10px; justify-content:center;">
+    <button onclick="closeLogout()" style="
+      flex:1; padding:10px; border-radius:8px;
+      border:1px solid var(--border); background:var(--bg);
+      color:var(--txt2); font-size:13px; cursor:pointer;
+      font-family:inherit; font-weight:500;">
+      Cancel
+    </button>
+    <button onclick="doLogout()" style="
+      flex:1; padding:10px; border-radius:8px;
+      border:none; background:var(--red);
+      color:white; font-size:13px; cursor:pointer;
+      font-family:inherit; font-weight:600;">
+      Yes, Logout
+    </button>
+  </div>
+</div>
+
+</body>
+</html>

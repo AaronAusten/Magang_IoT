@@ -17,10 +17,10 @@ MQTT_TOPICS = [
 ]
 
 DB_CONF = {
-    "host":     "localhost",
-    "database": "SAIL_IoT",
+    "host":     "192.168.0.85",
+    "database": "backend_db",
     "user":     "postgres",
-    "password": "Anoraa",
+    "password": "1234",
     "port":     5432,
 }
 

@@ -1,85 +1,57 @@
-#include <Arduino.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
-#include "DHT.h"
+#include <DHT.h>
+#include <ArduinoJson.h>
 
-#define DHTPIN 26
-#define DHTTYPE DHT22
-DHT dht(DHTPIN, DHTTYPE);
+#define DHT_PIN  27
+#define DHT_TYPE DHT22
 
-const char* ssid = "SAIL-IoT";
-const char* password = "S1L1wan9i";
-const char* mqtt_server = "192.168.0.211";
+DHT dht(DHT_PIN, DHT_TYPE);
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+float suhu_panas  = 35.0;
+float suhu_dingin = 20.0;
 
-void setup_wifi() {
-  delay(10);
-  Serial.println();
-  Serial.print("Menghubungkan ke ");
-  Serial.println(ssid);
-
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println("\n✅ WiFi Terhubung!");
-  Serial.print("IP ESP32: ");
-  Serial.println(WiFi.localIP());
-}
-
-void reconnect() {
-  while (!client.connected()) {
-    Serial.print("Mencoba koneksi MQTT ke ");
-    Serial.print(mqtt_server);
-    Serial.print("... ");
-
-    if (client.connect("ESP32_SAIL_Project")) {
-      Serial.println("✅ TERHUBUNG!");
-    } else {
-      Serial.print("❌ GAGAL, rc=");
-      Serial.print(client.state());
-      Serial.println(" (Coba lagi dalam 5 detik)");
-      delay(5000);
-    }
-  }
-}
+unsigned long lastSend = 0;
+const long INTERVAL = 3000;
 
 void setup() {
   Serial.begin(115200);
   dht.begin();
-  setup_wifi();
-  
-  client.setServer(mqtt_server, 1883);
 }
 
 void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
-
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-
-  if (isnan(h) || isnan(t)) {
-    Serial.println("⚠️ Gagal baca DHT22! Cek kabel/tegangan.");
-    return;
+  // Terima parameter dari Python via Serial
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    JsonDocument doc;
+    if (!deserializeJson(doc, input)) {
+      if (doc["suhu_panas"].is<float>())  suhu_panas  = doc["suhu_panas"].as<float>();
+      if (doc["suhu_dingin"].is<float>()) suhu_dingin = doc["suhu_dingin"].as<float>();
+    }
   }
 
-  String payload = String(t, 2) + "," + String(h, 2);
-  
-  Serial.print("Kirim Data: ");
-  Serial.println(payload);
+  // Kirim data sensor tiap 3 detik
+  if (millis() - lastSend >= INTERVAL) {
+    lastSend = millis();
 
-  if (client.publish("pabrik/sensor/suhu", payload.c_str())) {
-    Serial.println("📤 Data berhasil terkirim ke Ubuntu.");
-  } else {
-    Serial.println("📥 Data gagal terkirim.");
+    float suhu      = dht.readTemperature();
+    float kelembaban = dht.readHumidity();
+
+    if (isnan(suhu) || isnan(kelembaban)) return;
+
+    String status = "normal";
+    if (suhu >= suhu_panas)       status = "panas";
+    else if (suhu <= suhu_dingin) status = "dingin";
+
+    JsonDocument doc;
+    doc["suhu"]             = suhu;
+    doc["kelembaban"]       = kelembaban;
+    doc["threshold_panas"]  = suhu_panas;
+    doc["threshold_dingin"] = suhu_dingin;
+    doc["status"]           = status;
+
+    serializeJson(doc, Serial);
+    Serial.println();
   }
 
-  delay(10000);
+  delay(10);
 }

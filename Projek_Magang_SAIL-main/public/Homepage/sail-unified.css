@@ -1,0 +1,308 @@
+/* ═══════════════════════════════════════════════════════
+   sail-unified.css  —  SAIL Design System
+   Digunakan oleh semua halaman: Homepage, Register,
+   Fingerprint Login, Fingerprint Register, Logout
+═══════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── BASE ── */
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #eef1f5;
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════════════
+   TOP BAR  (dark navy seperti gambar)
+══════════════════════════════════════════════ */
+.top-bar {
+  background: #0f172a;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand { display: flex; flex-direction: column; gap: 2px; }
+.brand-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.brand-sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+.nav-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════
+   PAGE CENTER
+══════════════════════════════════════════════ */
+.page-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 60px);
+  padding: 32px 16px;
+}
+
+/* ══════════════════════════════════════════════
+   CARD
+══════════════════════════════════════════════ */
+.card {
+  background: #ffffff;
+  width: 400px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(15,23,42,.13), 0 2px 8px rgba(15,23,42,.07);
+  overflow: hidden;
+}
+.card-accent {
+  height: 4px;
+  background: linear-gradient(90deg, #0f172a 0%, #38bdf8 100%);
+}
+.card-body { padding: 30px 30px 22px; }
+
+.card-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+.card-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.card-footer {
+  padding: 16px 30px 22px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.card-link {
+  font-size: 13px;
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color .2s;
+}
+.card-link:hover { color: #0284c7; text-decoration: underline; }
+.card-note { font-size: 11.5px; color: #94a3b8; text-align: center; }
+
+/* ══════════════════════════════════════════════
+   FORM ELEMENTS
+══════════════════════════════════════════════ */
+.form-group { margin-bottom: 18px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 7px;
+}
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.form-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56,189,248,.15);
+  background: #ffffff;
+}
+.form-input::placeholder { color: #c0ccd8; }
+
+/* ══════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════ */
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background .2s, transform .15s, box-shadow .2s;
+  margin-top: 4px;
+}
+.btn-primary:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(15,23,42,.25);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-fp {
+  width: 100%;
+  padding: 14px;
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background .2s, transform .2s, box-shadow .2s;
+}
+.btn-fp:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(15,23,42,.28);
+}
+.btn-fp:active { transform: translateY(0); }
+
+/* ══════════════════════════════════════════════
+   FINGERPRINT VISUAL
+══════════════════════════════════════════════ */
+.fp-visual {
+  width: 90px; height: 90px;
+  margin: 0 auto 22px;
+  position: relative;
+}
+.fp-circle {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e0f2fe 0%, #bae6fd 60%, #7dd3fc 100%);
+  display: flex; align-items: center; justify-content: center;
+  animation: fp-pulse 2.5s ease-in-out infinite;
+  border: 2px solid #38bdf8;
+}
+@keyframes fp-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,.45); }
+  50%      { box-shadow: 0 0 0 14px rgba(56,189,248,0); }
+}
+.fp-scan-line {
+  position: absolute;
+  width: 64px; height: 2px;
+  background: linear-gradient(90deg, transparent, #0ea5e9, transparent);
+  left: 50%; transform: translateX(-50%);
+  animation: fp-scan 2.2s ease-in-out infinite;
+  border-radius: 2px;
+}
+@keyframes fp-scan {
+  0%   { top: 18%; opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 82%; opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════
+   STEP INDICATOR  (Fingerprint Login)
+══════════════════════════════════════════════ */
+.step-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+.step { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.step-dot {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  color: #94a3b8;
+}
+.step.done  .step-dot  { background: #dcfce7; border-color: #10b981; color: #10b981; }
+.step.active .step-dot { background: #0f172a; border-color: #0f172a; color: #ffffff; }
+.step-label { font-size: 10px; font-weight: 600; color: #94a3b8; white-space: nowrap; }
+.step.done  .step-label  { color: #10b981; }
+.step.active .step-label { color: #0f172a; }
+.step-line {
+  width: 52px; height: 2px;
+  background: linear-gradient(90deg, #10b981, #38bdf8);
+  margin: 0 8px 18px;
+}
+
+/* ══════════════════════════════════════════════
+   MANDATORY NOTE
+══════════════════════════════════════════════ */
+.mandatory-note {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #c2410c;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════════
+   LOGOUT SUCCESS
+══════════════════════════════════════════════ */
+.check-circle {
+  width: 68px; height: 68px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 18px;
+  box-shadow: 0 6px 20px rgba(16,185,129,.3);
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+.detail-row:last-child { border: none; }
+.detail-key { color: #64748b; font-weight: 500; }
+.detail-val { color: #0f172a; font-weight: 600; font-size: 12px; }
+.badge-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #dcfce7; color: #059669;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
